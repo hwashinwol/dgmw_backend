@@ -5,7 +5,6 @@ const pool = require('./config/db');
 
 // 2. Express 앱 생성
 const app = express();
-
 // 3. 서버가 실행될 포트 설정 (3000번 포트 사용)
 const PORT = 3000;
 
