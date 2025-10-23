@@ -45,14 +45,14 @@ router.post(
 
                 // DB에 저장
                 const [result] = await pool.execute(sql, [
-                    userId,         // user_id
-                    inputType,      // input_type
+                    userId,         
+                    inputType,      
                     inputText,      // input_text (text이므로 저장)
                     null,           // input_text_path (text이므로 NULL)
-                    charCount,      // char_count
-                    selectedDomain || null // selected_domain (없으면 NULL)
+                    charCount,      
+                    selectedDomain || null 
                 ]);
-                const newJobId = result.insertId; // 방금 생성된 작업의 고유 ID (job_id)
+                const newJobId = result.insertId; 
                 
                 // TODO: (6) (AI) AI 모델 호출 + 품질 점수 계산
                 // TODO: (7) (DB) Analysis_Result 테이블에 결과 저장
@@ -60,7 +60,7 @@ router.post(
                 // 최종 응답 로직
                 res.status(201).json({
                     message: "새로운 번역 작업이 성공적으로 생성되었습니다.",
-                    jobId: newJobId, // 이제 999가 아닌 실제 ID
+                    jobId: newJobId, 
                     inputType: inputType,
                     charCount: charCount
                 });
