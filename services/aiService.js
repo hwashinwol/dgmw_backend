@@ -115,15 +115,24 @@ async function callGoogle(textToTranslate) {
             throw new Error('Gemini가 빈 응답을 반환했습니다.')
         }
 
-        const match = rawText.match(/[\*"](.*?)[\"*]/);
         let translated_text = rawText;
 
-        if(match && match[1]) {
+        if (translated_text.startsWith('(') && translated_text.endsWith(')')) {
+            const innerMatch = translated_text.match(/[\*"](.*?)[\"*]/);
+            if (innerMatch && innerMatch[1]) {
+                translated_text = innerMatch[1].trim();
+            } else {
+                translated_text = translated_text.substring(1, translated_text.length - 1).trim();
+            }
+        }
+
+        const match = translated_text.match(/[\*"](.*?)[\"*]/);
+        if (match && match[1] && match[1].length > 0) {
             translated_text = match[1].trim();
         } else {
-            const firstLineBreak = rawText.indexOf('\n');
+            const firstLineBreak = translated_text.indexOf('\n');
             if (firstLineBreak > -1) {
-                translated_text = rawText.substring(firstLineBreak).trim();
+                translated_text = translated_text.substring(firstLineBreak).trim();
             }
         }
         
@@ -152,7 +161,7 @@ async function callAnthropic(textToTranslate) {
         }, {
             headers: {
                 "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2025-09-29",
+                "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json"
             }
         });
