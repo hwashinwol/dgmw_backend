@@ -34,8 +34,13 @@ async function getSpectrumScore(originalText, translatedText) {
 
     const prompt = `
 You are an evaluator for a translation service.
-Compare the [Original Text] and [Translated Text].
-Give a JSON only: {"spectrum_score": X} where X is 1.0 (literal) ~ 10.0 (free translation).
+Analyze the style of the [Translated Text] compared to the [Original Text].
+Is the translation a "Literal Translation" (strict, word-for-word, prioritizes source structure) or a "Free Translation" (creative, prioritizes target nuance and meaning)?
+
+Respond ONLY with a JSON object in the format: {"spectrum_score": X}
+Where X is a single number from 1.0 to 10.0.
+1.0 = 100% Literal (원문에 충실한 직역)
+10.0 = 100% Free (의미 중심의 자연스러운 의역)
 
 [Original Text]:
 ${originalText}
@@ -75,7 +80,7 @@ async function callOpenAI(model, textToTranslate) {
         const response = await axios.post(OPENAI_ENDPOINT, {
             model,
             messages: [
-                { role: 'system', content: 'You are a professional translator. Translate the following Korean text to English.' },
+                { role: 'system', content: 'You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.' },
                 { role: 'user', content: textToTranslate }
             ]
         }, {
@@ -100,7 +105,7 @@ async function callGoogle(textToTranslate) {
         const response = await axios.post(GOOGLE_ENDPOINT, { 
             contents: [
                 {
-                    parts : [{text: `Translate the following Korean text to English:\n${textToTranslate}`}]
+                    parts : [{text: `Detect the language of the following text. If it is Korean, translate it to English. If it is English, translate it to Korean.\n\n${textToTranslate}`}]
                 }
             ]
         }, {
@@ -154,7 +159,7 @@ async function callAnthropic(textToTranslate) {
         const response = await axios.post(ANTHROPIC_ENDPOINT, {
             model: "claude-sonnet-4-5-20250929",
             max_tokens: 1024,
-            system: "You are a professional translator. Translate the following Korean text to English.",
+            system: "You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.",
             messages: [
                 { role: "user", content: textToTranslate }
             ]
