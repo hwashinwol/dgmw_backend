@@ -190,7 +190,7 @@ router.post(
 
             // 최종 응답
             res.status(201).json({
-                message: "번역 작업 생성 및 AI 분석(Mock) 완료.",
+                message: "번역 작업 생성 및 AI 분석 완료.",
                 jobId: newJobId,
                 userStatus: userStatus,
                 inputType: inputType,
