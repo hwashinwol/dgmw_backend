@@ -30,7 +30,7 @@ router.post(
     '/',
     upload.single('file'),
     async (req, res) => {
-        const { inputType, inputText, selectedDomain } = req.body;
+        const { inputType, inputText, selected_domain } = req.body;
         const file = req.file;
         
         // inputType 필수값 검사
@@ -130,17 +130,17 @@ router.post(
                 finalInputText, 
                 finalStoragePath, 
                 finalCharCount, 
-                (userStatus === 'paid' ? (selectedDomain || null) : null) 
+                (userStatus === 'paid' ? (selected_domain || null) : null) 
             ]);
             newJobId = jobResult.insertId; 
 
             // AI 서비스 호출
-            const aiResults = await runAnalysis(textToTranslate, userStatus);
+            const aiResults = await runAnalysis(textToTranslate, userStatus, selected_domain);
 
             // 번역 결과를 'Analysis_Result' 테이블에 저장
             const resultSql = `
                 INSERT INTO analysis_result 
-                    (job_id, model_name, translated_text, translated_text_path, readable_score, spectrum_score)
+                    (job_id, model_name, translated_text, translated_text_path, complexity_score, spectrum_score)
                 VALUES (?, ?, ?, ?, ?, ?)
             `;
 
@@ -155,7 +155,7 @@ router.post(
                         result.model_name,
                         result.translated_text, // 1. DB에 텍스트 저장
                         null,                   // 2. 경로는 NULL
-                        result.readable_score,
+                        result.complexity_score,
                         result.spectrum_score
                     ]);
                 }
@@ -179,7 +179,7 @@ router.post(
                         result.model_name,
                         null,                   // 1. DB에 텍스트는 NULL
                         fileKey,                // 2. 경로는 S3 경로
-                        result.readable_score,
+                        result.complexity_score,
                         result.spectrum_score
                     ]);
                 }
@@ -196,7 +196,8 @@ router.post(
                 inputType: inputType,
                 charCount: finalCharCount,
                 storagePath: finalStoragePath,
-                results: aiResults // AI 결과도 함께 응답
+                selected_domain: selected_domain,
+                results: successfulResults // AI 결과도 함께 응답
             });
 
         } catch (error) {

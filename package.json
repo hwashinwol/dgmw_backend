@@ -13,14 +13,14 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.916.0",
+    "@google-cloud/translate": "^9.2.1",
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
-    "pdf-parse": "^2.4.5",
-    "text-statistics": "^0.1.1"
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
