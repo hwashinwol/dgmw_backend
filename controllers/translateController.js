@@ -22,20 +22,30 @@ const handleTranslationRequest = async (req, res) => {
     if (!inputType) {
         return res.status(400).json({ error: "inputType ('text' 또는 'file') 필드는 필수입니다." });
     }
-    
     // --- 사용자 인증 로직 ---
-    // (추후 routes/auth.js와 연동 필요)
-    const token = req.headers.authorization;
-    let userId = null; 
-    let userStatus = 'free'; // 기본값 'free'
     
-    if (token) {
-        // (임시) 토큰이 'paid-token'이면 유료 회원으로 간주
-        if (token === 'paid-token') {
-            userId = null; // (임시 - 실제로는 JWT에서 추출)
-            userStatus = 'paid';
+    let userId = null;
+    let userStatus = 'free';
+
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                // 토큰 검증
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                
+                // (중요) 토큰이 유효하면, req.user에서 userId와 status를 가져옴
+                // 이 decoded 객체는 authController에서 sign했던 페이로드와 동일
+                userId = decoded.userId;
+                userStatus = decoded.status;
+                logger.info(`[Auth/Translate] 인증된 사용자 요청: ${decoded.email} (Status: ${userStatus})`);
+            }
         }
-        // (실제로는 JWT 토큰을 검증해서 userId와 status를 DB에서 조회해야 함)
+    } catch (error) {
+        logger.warn(`[Auth/Translate] JWT 검증 실패 (free 등급 처리): ${error.message}`);
+        userId = null;
+        userStatus = 'free';
     }
     // --- 인증 로직 종료 ---
 
@@ -50,7 +60,10 @@ const handleTranslationRequest = async (req, res) => {
     let finalStoragePath = null;
     let finalInputText = null;
 
+    let db;
+
     try {
+        db = await pool.getConnection();
         // 1. 입력 처리 (Text or File)
         if (inputType === 'text') {
             if(!inputText) {
@@ -150,7 +163,7 @@ const handleTranslationRequest = async (req, res) => {
                 });
                 await s3Client.send(command);
 
-                await pool.execute(resultSql, [
+                await db.execute(resultSql, [
                     newJobId,
                     result.model_name,
                     null,                   // 1. DB에 텍스트는 NULL
@@ -182,6 +195,11 @@ const handleTranslationRequest = async (req, res) => {
             body: req.body
         });
         res.status(500).json({ error: "서버 내부 오류가 발생." });
+    } finally {
+        if (db) {
+            db.release();
+            logger.info('[Translate] DB Connection released.');
+        }
     }
 };
 

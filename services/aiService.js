@@ -3,7 +3,7 @@
 require('dotenv').config();
 
 // 분리된 모듈 import
-const { getComplexityScore, getSpectrumScore } = require('./scoringService');
+const { getComplexityScore, getSpectrumScores_Batch } = require('./scoringService');
 const { 
     callOpenAI, 
     callGoogle, 
@@ -47,14 +47,37 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
     }
 
     if (userStatus === 'paid') {
-        const spectrumScores = await Promise.all(
-            finalResults.map(res =>
-                res.translated_text 
-                ? getSpectrumScore(textToTranslate, res.translated_text, selected_domain) 
-                : Promise.resolve(null)
-            )
-        );
-        finalResults = finalResults.map((res, i) => ({ ...res, spectrum_score: spectrumScores[i] }));
+        // 1. API 호출에 성공한 결과만 필터링합니다.
+        const successfulResults = finalResults.filter(r => !r.error);
+
+        if (successfulResults.length > 0) {
+            // 2. 3개의 번역문을 '1번의' API 호출로 평가합니다.
+            logger.info(`[AI 서비스] Batch Spectrum Score 평가 시작... (모델 ${successfulResults.length}개)`);
+            const batchScoreObjects = await getSpectrumScores_Batch(
+                textToTranslate, 
+                successfulResults, 
+                selected_domain
+            );
+            // (결과 예: [{ model_name: 'gpt-4o', spectrum_score: 2.0 }, ...])
+
+            // 3. 빠른 조회를 위해 점수 맵(Map)을 생성합니다.
+            const scoreMap = new Map(
+                batchScoreObjects.map(s => [s.model_name, s.spectrum_score])
+            );
+
+            // 4. finalResults에 스펙트럼 점수를 병합합니다.
+            finalResults = finalResults.map(res => {
+                if (res.error) return res; // 에러난 결과는 그대로 반환
+                return {
+                    ...res,
+                    // 맵에서 모델 이름으로 점수를 찾아 할당합니다.
+                    spectrum_score: scoreMap.get(res.model_name) || null 
+                };
+            });
+        
+        } else {
+            logger.warn("[AI 서비스] 모든 유료 번역 API 호출에 실패하여 Spectrum Score 평가를 건너뜁니다.");
+        }
     }
 
     logger.info(`[AI 서비스] 완료. 총 ${finalResults.length}개 결과 반환.`);
