@@ -15,6 +15,7 @@
     "@aws-sdk/client-s3": "^3.916.0",
     "@google-cloud/translate": "^9.2.1",
     "axios": "^1.12.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "google-auth-library": "^10.5.0",

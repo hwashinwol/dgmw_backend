@@ -9,6 +9,16 @@ const authController = require('../controllers/authController');
  * @access  Public
  */
 router.get(
+    '/google',
+    authController.googleLoginStart // 1. authController의 googleLoginStart 함수 실행
+);
+
+
+/**
+ * @route   GET /api/v1/auth/google/callback
+ * @desc    Google OAuth 2.0 콜백 처리
+ */
+router.get(
     '/google/callback',
     authController.googleCallback // 1. authController의 googleCallback 함수 실행
 );

@@ -1,0 +1,5 @@
+2025-11-05 12:35:45 [31merror[39m: [Auth] Google OAuth 콜백 처리 실패: Cannot access 'db' before initialization
+2025-11-05 12:40:41 [31merror[39m: [Auth] Google OAuth 콜백 처리 실패: Cannot access 'db' before initialization
+2025-11-05 12:45:24 [31merror[39m: [Auth] Google OAuth 콜백 처리 실패: secretOrPrivateKey must have a value
+2025-11-05 14:06:44 [31merror[39m: 번역 작업 처리 중 에러 발생: Data truncated for column 'selected_domain' at row 1
+2025-11-05 14:06:51 [31merror[39m: 번역 작업 처리 중 에러 발생: Data truncated for column 'selected_domain' at row 1

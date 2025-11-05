@@ -3,18 +3,43 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db'); // PM님의 DB 풀
 const logger = require('../utils/logger');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET, 
+    `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/v1/auth/google/callback`
+);
 
 /**
- * Google OAuth 콜백 처리
- * 1. Google에서 'code' 받기
- * 2. 'code'를 Google 'access_token'으로 교환
- * 3. 'access_token'으로 Google 사용자 정보(id, email) 가져오기
- * 4. DB에서 user_id (Google ID)로 회원 조회
- * 5. (신규) 없으면 'free' 등급으로 DB에 INSERT (회원가입)
- * 6. (기존) 있으면 'status' 정보 로드 (로그인)
- * 7. DGMW 자체 JWT 토큰 발급
- * 8. 프론트엔드로 JWT 토큰과 함께 리다이렉트
+ * @desc    [신규] Google OAuth 2.0 로그인 시작
+ * (프론트엔드가 'Google 로그인' 버튼 클릭 시 호출)
+ */
+
+exports.googleLoginStart = (req, res) => {
+    try {
+        // Google 인증 페이지로 리디렉션하는 URL 생성
+        const scopes = [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+        ];
+
+        const url = client.generateAuthUrl({
+            access_type: 'offline',
+            scope: scopes,
+            prompt: 'consent' // (선택) 매번 계정 선택 창을 띄움
+        });
+
+        // ⭐️ 프론트엔드에 이 URL을 json으로 보내줍니다.
+        // 프론트엔드는 이 URL로 window.location.href를 변경해야 합니다.
+        res.status(200).json({ authUrl: url });
+
+    } catch (error) {
+        logger.error('[Auth] Google 로그인 URL 생성 실패:', error);
+        res.status(500).json({ error: '서버 오류' });
+    }
+};
+
+/**
+ * @desc    Google OAuth 콜백 처리
  */
 exports.googleCallback = async (req, res) => {
     const { code } = req.query;
@@ -43,7 +68,6 @@ exports.googleCallback = async (req, res) => {
         }
 
         // 3. DB에서 회원 조회
-        const db = await pool.getConnection();
         let userStatus = 'free';
         let userId = googleUserId;
 

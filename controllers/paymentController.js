@@ -4,17 +4,17 @@ const logger = require('../utils/logger');
 
 /**
  * 1. Stripe Checkout 세션 생성
- * - '구독 플랜' 모달에서 '업그레이드하기' 버튼 클릭 시 호출
- * - 'past_due' 상태에서 '결제 재시도' 버튼 클릭 시 호출
+ * (DB 커넥션 누수 방지를 위해 finally 블록 적용)
  */
 exports.createCheckoutSession = async (req, res) => {
     // authMiddleware를 통과했으므로 req.user.userId가 보장됨
     const { userId, email } = req.user;
-
-    let db;
+    
+    let db; 
 
     try {
-        db = await pool.getConnection();
+        db = await pool.getConnection(); 
+        
         // DB에서 사용자의 Stripe 고객 ID 조회
         const [users] = await db.query('SELECT stripe_customer_id FROM user WHERE user_id = ?', [userId]);
         let customerId = users[0]?.stripe_customer_id;
@@ -27,7 +27,7 @@ exports.createCheckoutSession = async (req, res) => {
             });
             customerId = customer.id;
             
-            // ⭐️ 중요: PM님의 user 테이블에 stripe_customer_id 컬럼이 필요합니다.
+            // user 테이블에 stripe_customer_id 컬럼이 필요
             await db.query('UPDATE user SET stripe_customer_id = ? WHERE user_id = ?', [customerId, userId]);
         }
 
@@ -64,7 +64,7 @@ exports.createCheckoutSession = async (req, res) => {
 
 /**
  * 2. Stripe Webhook 수신
- * - Stripe가 결제 성공/실패/취소 등 모든 이벤트를 이 엔드포인트로 전송
+ * (결제 성공 시 payment_history 테이블 INSERT 로직 추가)
  */
 exports.handleStripeWebhook = async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -91,28 +91,69 @@ exports.handleStripeWebhook = async (req, res) => {
                 const subscriptionId = session.subscription || (session.lines?.data[0]?.subscription);
                 const customerId = session.customer;
                 
-                if (subscriptionId) {
-                    // 구독 정보 가져오기 (종료 날짜 확인용)
-                    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-                    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-                    
-                    // DB 업데이트: 'paid' 상태로 변경, 구독 ID, 종료 날짜 갱신
-                    // ⭐️ 중요: PM님의 user 테이블에 stripe_subscription_id 컬럼이 필요합니다.
-                    await db.query(
-                        `UPDATE user 
-                         SET status = 'paid', 
-                             stripe_subscription_id = ?, 
-                             subscription_start_date = NOW(), 
-                             subscription_end_date = ?, 
-                             auto_renew = ? 
-                         WHERE stripe_customer_id = ?`,
-                        [subscriptionId, currentPeriodEnd, true, customerId]
-                    );
-                    logger.info(`[Webhook] 구독 성공: Customer ${customerId} (Status: paid)`);
-
-                    // TODO: 결제 내역(payment_history) 테이블에 기록 (PM님 DB 스키마 참조)
-                    // ... (INSERT INTO payment_history ...)
+                if (!subscriptionId) {
+                     // 구독 ID가 없는 Webhook(예: 1회성 결제)은 무시
+                    logger.info(`[Webhook] 구독 ID가 없는 이벤트 수신 (처리 건너뜀): ${event.type}`);
+                    break; 
                 }
+
+                // 구독 정보 가져오기 (종료 날짜, 플랜 확인용)
+                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+                
+                // 1. [User 테이블] 업데이트: 'paid' 상태로 변경, 구독 ID, 종료 날짜 갱신
+                await db.query(
+                    `UPDATE user 
+                     SET status = 'paid', 
+                         stripe_subscription_id = ?, 
+                         subscription_start_date = NOW(), 
+                         subscription_end_date = ?, 
+                         auto_renew = ? 
+                     WHERE stripe_customer_id = ?`,
+                    [subscriptionId, currentPeriodEnd, true, customerId]
+                );
+                logger.info(`[Webhook] 구독 성공: Customer ${customerId} (Status: paid)`);
+
+                // 2. [Payment_History 테이블] 기록 
+                let userId = null;
+                let paymentType = 'renewal'; // 기본값 'renewal'
+                let amount = session.amount_paid; // 갱신(invoice) 기준
+                let transactionId = session.payment_intent;
+
+                if (event.type === 'checkout.session.completed') {
+                    // [신규 구독]
+                    userId = session.client_reference_id; // createCheckoutSession에서 넣은 우리 user_id
+                    paymentType = 'new';
+                    amount = session.amount_total; // 신규 결제(checkout) 기준
+                } else {
+                    // [갱신 구독]
+                    // customerId(Stripe)로 우리 user_id 조회
+                    const [rows] = await db.query('SELECT user_id FROM user WHERE stripe_customer_id = ?', [customerId]);
+                    userId = rows[0]?.user_id;
+                }
+
+                if (!userId) {
+                    logger.error(`[Webhook] ${paymentType} 결제 건의 user_id를 찾을 수 없습니다. (Customer: ${customerId})`);
+                    break;
+                }
+                
+                // (DB 스키마: DECIMAL(10, 2))
+                const finalAmount = amount / 100; // (Stripe는 센트/원이므로 100으로 나눔)
+
+                const historySql = `
+                    INSERT INTO payment_history 
+                        (user_id, payment_date, amount, payment_status, transaction_id, payment_type)
+                    VALUES (?, NOW(), ?, ?, ?, ?)
+                `;
+                await db.execute(historySql, [
+                    userId,
+                    finalAmount,
+                    'success',
+                    transactionId,
+                    paymentType
+                ]);
+                
+                logger.info(`[Webhook] 결제 내역(History) 기록 완료: User ${userId} (${paymentType})`);
                 break;
             }
 

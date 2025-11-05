@@ -1,5 +1,4 @@
-// 4. 컨트롤러 로직 (신규)
-// - routes/translate.js에서 분리됨
+// 4. 컨트롤러 로직
 // ----------------------------------------------------
 const pool = require('../config/db');
 const pdf = require('pdf-parse');
@@ -8,6 +7,8 @@ const s3Client = require("../config/storage");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { runAnalysis } = require('../services/aiService'); // ⭐️ aiService(Orchestrator) 호출
 const logger = require('../utils/logger');
+const jwt = require('jsonwebtoken');
+const path = require('path');
 
 /**
  * @route   POST /
@@ -62,6 +63,30 @@ const handleTranslationRequest = async (req, res) => {
 
     let db;
 
+    const domainMapper = {
+        '선택 안 함': null,
+        '공학': 'engineering',
+        '사회과학': 'social_science',
+        '예술': 'art',
+        '의료': 'medical',
+        '법률': 'law',
+        '자연과학': 'nature_science',
+        '인문학': 'humanities'
+    };
+    
+    // DB에 실제 저장될 ENUM 값 (기본값 null)
+    let dbDomainValue = null;
+
+    // 유료 사용자이고, 도메인을 선택했을 때만 매핑 수행
+    if (userStatus === 'paid' && selected_domain) {
+        dbDomainValue = domainMapper[selected_domain];
+        
+        // '선택 안 함' 또는 맵핑에 없는 값이 들어온 경우 null 처리
+        if (dbDomainValue === undefined) {
+             dbDomainValue = null; 
+        }
+    }
+
     try {
         db = await pool.getConnection();
         // 1. 입력 처리 (Text or File)
@@ -100,7 +125,9 @@ const handleTranslationRequest = async (req, res) => {
             }
 
             // S3(NCP) 업로드
-            const fileKey = `inputs/${Date.now()}-${file.originalname}.txt`;
+            const originalnameUtf8 = Buffer.from(file.originalname, 'latin1').toString('utf8');
+            const originalBasename = path.parse(originalnameUtf8).name;
+            const fileKey = `inputs/${Date.now()}-${originalBasename}.txt`;
             const command = new PutObjectCommand({
                 Bucket: process.env.NCP_BUCKET_NAME,
                 Key: fileKey,
@@ -121,7 +148,7 @@ const handleTranslationRequest = async (req, res) => {
             finalInputText, // text 입력 시 본문, file 입력 시 null
             finalStoragePath, // file 입력 시 S3 경로, text 입력 시 null
             finalCharCount, 
-            (userStatus === 'paid' ? (selected_domain || null) : null) 
+            dbDomainValue
         ]);
         newJobId = jobResult.insertId; 
 
