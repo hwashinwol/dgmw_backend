@@ -158,11 +158,8 @@ const handleTranslationRequest = async (req, res) => {
 
             // S3(NCP) 업로드
             
-            // ⭐️ [수정] 한글 파일명 깨짐 방지 (latin1 -> utf8 변환)
             const originalnameUtf8 = Buffer.from(file.originalname, 'latin1').toString('utf8');
-            // ⭐️ [수정] 원본 파일명에서 확장자(.pdf, .docx...) 제거
             const originalBasename = path.parse(originalnameUtf8).name;
-            // ⭐️ [수정] fileKey 생성 시 깨지지 않는 basename을 사용하고 .txt는 한 번만 붙임
             const fileKey = `inputs/${Date.now()}-${originalBasename}.txt`;
 
             const command = new PutObjectCommand({

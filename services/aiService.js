@@ -1,5 +1,4 @@
 // 3. 메인 서비스 파일
-// - API 호출과 점수 계산 로직을 import
 require('dotenv').config();
 
 // 분리된 모듈 import
@@ -8,7 +7,8 @@ const {
     callOpenAI, 
     callGoogle, 
     callAnthropic, 
-    callGoogleTranslate 
+    callGoogleTranslate,
+    callPapagoTranslate
 } = require('./translatorFactory');
 const logger = require('../utils/logger');
 
@@ -27,7 +27,7 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
                 callAnthropic(textToTranslate)
               ]
             : [
-                callOpenAI('gpt-3.5-turbo', textToTranslate),
+                callPapagoTranslate(textToTranslate), 
                 callGoogleTranslate(textToTranslate)
               ];
 
