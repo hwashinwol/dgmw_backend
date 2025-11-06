@@ -7,8 +7,7 @@ const {
     callOpenAI, 
     callGoogle, 
     callAnthropic, 
-    callGoogleTranslate,
-    callPapagoTranslate
+    callGoogleTranslate
 } = require('./translatorFactory');
 const logger = require('../utils/logger');
 
@@ -27,7 +26,7 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
                 callAnthropic(textToTranslate)
               ]
             : [
-                callPapagoTranslate(textToTranslate), 
+                callOpenAI('gpt-3.5-turbo',textToTranslate), 
                 callGoogleTranslate(textToTranslate)
               ];
 

@@ -81,12 +81,8 @@ const handleTranslationRequest = async (req, res) => {
     try {
         db = await pool.getConnection();
 
-        // ⭐️ [신규 기능 1] 비회원(IP) 일일 2회 제한 로직
-        // (텍스트 번역 전용. 파일 번역은 위에서 이미 차단됨)
+        // 비회원 제한 로직
         if (!userId) {
-            // (참고) Express가 프록시(예: Nginx) 뒤에 있을 경우,
-            // 'trust proxy' 설정이 되어 있어야 req.ip가 실제 IP를 반환합니다.
-            // 안 되어 있다면 req.socket.remoteAddress 등을 사용해야 할 수 있습니다.
             const ip = req.ip; 
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             const usage = anonymousUsage.get(ip);
@@ -113,7 +109,7 @@ const handleTranslationRequest = async (req, res) => {
             const [usageRows] = await db.execute(todayUsageSql, [userId]);
             const usageCount = usageRows[0].usageCount;
 
-            if (usageCount >= 5) {
+            if (usageCount >= 100) {  
                 logger.warn(`[Usage Limit] 무료 사용자 일일 사용량 초과. UserID: ${userId} (Count: ${usageCount})`);
                 return res.status(429).json({ error: "비회원 및 무료등급 회원은 하루에 5회까지만 요청할 수 있습니다." });
             }

@@ -21,7 +21,8 @@ const logger = require('../utils/logger');
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const GOOGLE_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-const PAPAGO_ENDPOINT = 'https://naveropenapi.apigw.ntruss.com/nmt/v1/translation';
+// const PAPAGO_ENDPOINT = 'https://naveropenapi.apigw.ntruss.com/nmt/v1/translation';
+// const PAPAGO_DETECT_ENDPOINT = 'https://naveropenapi.apigw.ntruss.com/langs/v1/detect';
 
 // 3️⃣ OpenAI (GPT)
 async function callOpenAI(model, textToTranslate) {
@@ -150,90 +151,91 @@ async function callGoogleTranslate(textToTranslate){
     }
 }
 
-async function callPapagoTranslate(text) {
-    const model_name = "Papago (NCP)";
+// async function callPapagoTranslate(text) {
+//     const model_name = "Papago (NCP)";
     
-    if (!PAPAGO_CLIENT_ID || !PAPAGO_CLIENT_SECRET) {
-        logger.warn('[AI Service] Papago API 키가 .env에 설정되지 않았습니다. Papago 호출을 건너뜁니다.');
-        return { model_name, error: "API 키가 설정되지 않았습니다." };
-    }
+//     if (!PAPAGO_CLIENT_ID || !PAPAGO_CLIENT_SECRET) {
+//         logger.warn('[AI Service] Papago API 키가 .env에 설정되지 않았습니다. Papago 호출을 건너뜁니다.');
+//         return { model_name, error: "API 키가 설정되지 않았습니다." };
+//     }
 
-    const headers = {
-        'X-NCP-APIGW-API-KEY-ID': PAPAGO_CLIENT_ID,
-        'X-NCP-APIGW-API-KEY': PAPAGO_CLIENT_SECRET,
-        'Content-Type': 'application/json'
-    };
+//     const headers = {
+//         'X-NCP-APIGW-API-KEY-ID':PAPAGO_CLIENT_ID,
+//         'X-NCP-APIGW-API-KEY':PAPAGO_CLIENT_SECRET,
+//         'Content-Type': 'application/json'
+//     };
     
-    let sourceLang;
-    let targetLang;
+//     let sourceLang;
+//     let targetLang;
 
-    try {
-        // 1. [신규] Papago 언어 감지 API 호출
-        const detectResponse = await axios.post(
-            PAPAGO_DETECT_ENDPOINT, 
-            { query: text.substring(0, 1000) }, // (언어 감지는 1000자면 충분)
-            { headers }
-        );
+//     try {
+//         // 1. [신규] Papago 언어 감지 API 호출
+//         const detectResponse = await axios.post(
+//             PAPAGO_DETECT_ENDPOINT, 
+//             { query: text.substring(0, 1000) }, // (언어 감지는 1000자면 충분)
+//             { headers }
+//         );
         
-        const detectedLang = detectResponse.data?.langCode;
+//         const detectedLang = detectResponse.data?.langCode;
 
-        if (detectedLang === 'ko') {
-            sourceLang = 'ko';
-            targetLang = 'en';
-        } else if (detectedLang === 'en') {
-            sourceLang = 'en';
-            targetLang = 'ko';
-        } else {
-            // (기타 언어는 en -> ko로 강제)
-            logger.warn(`[Papago] 감지된 언어(${detectedLang})가 en/ko가 아니므로, en -> ko로 강제합니다.`);
-            sourceLang = 'en';
-            targetLang = 'ko';
-        }
+//         if (detectedLang === 'ko') {
+//             sourceLang = 'ko';
+//             targetLang = 'en';
+//         } else if (detectedLang === 'en') {
+//             sourceLang = 'en';
+//             targetLang = 'ko';
+//         } else {
+//             // (기타 언어는 en -> ko로 강제)
+//             logger.warn(`[Papago] 감지된 언어(${detectedLang})가 en/ko가 아니므로, en -> ko로 강제합니다.`);
+//             sourceLang = 'en';
+//             targetLang = 'ko';
+//         }
 
-    } catch (error) {
-        logger.error('[AI Service] Papago 언어 감지 실패:', { 
-            status: error.response?.status, 
-            data: error.response?.data 
-        });
-        // (감지 실패 시 기본값 ko -> en)
-        sourceLang = 'ko';
-        targetLang = 'en';
-    }
+//     } catch (error) {
+//         logger.error('[AI Service] Papago 언어 감지 실패:', { 
+//             status: error.response?.status, 
+//             data: error.response?.data 
+//         });
+//         console.log(error);
+//         // (감지 실패 시 기본값 ko -> en)
+//         sourceLang = 'ko';
+//         targetLang = 'en';
+//     }
 
-    // 2. [수정] Papago 번역 API 호출 (감지된 언어 적용)
-    const body = {
-        source: sourceLang, // ⭐️ [수정] 'ko' -> sourceLang
-        target: targetLang, // ⭐️ [수정] 'en' -> targetLang
-        text: text
-    };
+//     // 2. [수정] Papago 번역 API 호출 (감지된 언어 적용)
+//     const body = {
+//         source: sourceLang, // ⭐️ [수정] 'ko' -> sourceLang
+//         target: targetLang, // ⭐️ [수정] 'en' -> targetLang
+//         text: text
+//     };
 
-    try {
-        const response = await axios.post(PAPAGO_ENDPOINT, body, { headers });
+//     try {
+//         const response = await axios.post(PAPAGO_ENDPOINT, body, { headers });
         
-        if (response.data && response.data.message && response.data.message.result) {
-            const translatedText = response.data.message.result.translatedText;
-            return {
-                model_name: model_name,
-                translated_text: translatedText,
-                complexity_score: null, 
-                spectrum_score: null
-            };
-        } else {
-            throw new Error('Papago API 응답 형식이 올바르지 않습니다.');
-        }
-    } catch (error) {
-        logger.error('[AI Service] Papago API (번역) 호출 실패:', { 
-            status: error.response?.status, 
-            data: error.response?.data 
-        });
-        return { model_name: model_name, error: "API (번역) 호출 실패" };
-    }
-}
+//         if (response.data && response.data.message && response.data.message.result) {
+//             const translatedText = response.data.message.result.translatedText;
+//             return {
+//                 model_name: model_name,
+//                 translated_text: translatedText,
+//                 complexity_score: null, 
+//                 spectrum_score: null
+//             };
+//         } else {
+//             throw new Error('Papago API 응답 형식이 올바르지 않습니다.');
+//         }
+//     } catch (error) {
+//         logger.error('[AI Service] Papago API (번역) 호출 실패:', { 
+//             status: error.response?.status, 
+//             data: error.response?.data 
+//         });
+//         console.log(error);
+//         return { model_name: model_name, error: "API (번역) 호출 실패" };
+//     }
+// }
 
 module.exports = {
     callOpenAI,
     callGoogle,
     callAnthropic,
-    callGoogleTranslate,
-    callPapagoTranslate
+    callGoogleTranslate
 };
