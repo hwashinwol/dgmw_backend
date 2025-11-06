@@ -1,4 +1,5 @@
-// 4. 컨트롤러 로직
+// 4. 컨트롤러 로직 (신규)
+// - routes/translate.js에서 분리됨
 // ----------------------------------------------------
 const pool = require('../config/db');
 const pdf = require('pdf-parse');
@@ -7,8 +8,22 @@ const s3Client = require("../config/storage");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const { runAnalysis } = require('../services/aiService'); // ⭐️ aiService(Orchestrator) 호출
 const logger = require('../utils/logger');
-const jwt = require('jsonwebtoken');
-const path = require('path');
+const jwt = require('jsonwebtoken'); 
+const path = require('path'); 
+
+// ⭐️ [신규] 비회원 IP 기반 사용량 추적기 (서버 재시작 시 초기화됨)
+const anonymousUsage = new Map();
+
+const domainMapper = {
+    '선택 안 함': null,
+    '공학': 'engineering',
+    '사회과학': 'social_science',
+    '예술': 'art',
+    '의료': 'medical',
+    '법률': 'law',
+    '자연과학': 'nature_science',
+    '인문학': 'humanities'
+};
 
 /**
  * @route   POST /
@@ -63,32 +78,49 @@ const handleTranslationRequest = async (req, res) => {
 
     let db;
 
-    const domainMapper = {
-        '선택 안 함': null,
-        '공학': 'engineering',
-        '사회과학': 'social_science',
-        '예술': 'art',
-        '의료': 'medical',
-        '법률': 'law',
-        '자연과학': 'nature_science',
-        '인문학': 'humanities'
-    };
-    
-    // DB에 실제 저장될 ENUM 값 (기본값 null)
-    let dbDomainValue = null;
-
-    // 유료 사용자이고, 도메인을 선택했을 때만 매핑 수행
-    if (userStatus === 'paid' && selected_domain) {
-        dbDomainValue = domainMapper[selected_domain];
-        
-        // '선택 안 함' 또는 맵핑에 없는 값이 들어온 경우 null 처리
-        if (dbDomainValue === undefined) {
-             dbDomainValue = null; 
-        }
-    }
-
     try {
         db = await pool.getConnection();
+
+        // ⭐️ [신규 기능 1] 비회원(IP) 일일 2회 제한 로직
+        // (텍스트 번역 전용. 파일 번역은 위에서 이미 차단됨)
+        if (!userId) {
+            // (참고) Express가 프록시(예: Nginx) 뒤에 있을 경우,
+            // 'trust proxy' 설정이 되어 있어야 req.ip가 실제 IP를 반환합니다.
+            // 안 되어 있다면 req.socket.remoteAddress 등을 사용해야 할 수 있습니다.
+            const ip = req.ip; 
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const usage = anonymousUsage.get(ip);
+
+            if (usage && usage.date === today && usage.count >= 5) {
+                logger.warn(`[Usage Limit] 비회원 IP 일일 사용량 초과. IP: ${ip}`);
+                return res.status(429).json({ error: "비회원 및 무료등급 회원은 하루에 5회까지만 요청할 수 있습니다." });
+            }
+
+            // 비회원 카운트 업데이트 또는 신규 등록 (성공 시에만)
+            const newCount = (usage && usage.date === today) ? usage.count + 1 : 1;
+            anonymousUsage.set(ip, { count: newCount, date: today });
+            logger.info(`[Usage] 비회원 IP 사용량 증가. IP: ${ip}, Count: ${newCount}`);
+        }
+
+        // ⭐️ [신규 기능 2] 무료 *회원* 일일 5회 제한 로직
+        // (DB 서버 시간이 KST 기준이라고 가정)
+        if (userId && userStatus === 'free') {
+            const todayUsageSql = `
+                SELECT COUNT(*) as usageCount
+                FROM Translation_Job
+                WHERE user_id = ? AND DATE(created_at) = CURDATE()
+            `;
+            const [usageRows] = await db.execute(todayUsageSql, [userId]);
+            const usageCount = usageRows[0].usageCount;
+
+            if (usageCount >= 5) {
+                logger.warn(`[Usage Limit] 무료 사용자 일일 사용량 초과. UserID: ${userId} (Count: ${usageCount})`);
+                return res.status(429).json({ error: "비회원 및 무료등급 회원은 하루에 5회까지만 요청할 수 있습니다." });
+            }
+            // (사용량 카운트는 아래 DB INSERT 시 자동으로 누적됩니다)
+        }
+        // ⭐️ [신규 기능 종료]
+
         // 1. 입력 처리 (Text or File)
         if (inputType === 'text') {
             if(!inputText) {
@@ -125,9 +157,14 @@ const handleTranslationRequest = async (req, res) => {
             }
 
             // S3(NCP) 업로드
+            
+            // ⭐️ [수정] 한글 파일명 깨짐 방지 (latin1 -> utf8 변환)
             const originalnameUtf8 = Buffer.from(file.originalname, 'latin1').toString('utf8');
+            // ⭐️ [수정] 원본 파일명에서 확장자(.pdf, .docx...) 제거
             const originalBasename = path.parse(originalnameUtf8).name;
+            // ⭐️ [수정] fileKey 생성 시 깨지지 않는 basename을 사용하고 .txt는 한 번만 붙임
             const fileKey = `inputs/${Date.now()}-${originalBasename}.txt`;
+
             const command = new PutObjectCommand({
                 Bucket: process.env.NCP_BUCKET_NAME,
                 Key: fileKey,
@@ -138,23 +175,26 @@ const handleTranslationRequest = async (req, res) => {
             finalStoragePath = fileKey; 
         }
 
+        // ⭐️ [수정 2] 한글 도메인 -> 영어 ENUM 값으로 매핑
+        const dbDomainValue = domainMapper[selected_domain] || null;
+
         // 2. 'Translation_Job' DB에 저장
         const jobSql = `INSERT INTO Translation_Job 
                             (user_id, input_type, input_text, input_text_path, char_count, selected_domain) 
-                          VALUES (?, ?, ?, ?, ?, ?)`;
+                        VALUES (?, ?, ?, ?, ?, ?)`;
         const [jobResult] = await pool.execute(jobSql, [
             userId, 
             inputType, 
             finalInputText, // text 입력 시 본문, file 입력 시 null
             finalStoragePath, // file 입력 시 S3 경로, text 입력 시 null
             finalCharCount, 
-            dbDomainValue
+            (userStatus === 'paid' ? dbDomainValue : null) // ⭐️ [수정 3] 매핑된 값(dbDomainValue)을 저장
         ]);
         newJobId = jobResult.insertId; 
 
         // 3. AI 서비스(Orchestrator) 호출
         // (컨트롤러는 aiService가 어떻게 동작하는지 알 필요가 없음)
-        const aiResults = await runAnalysis(textToTranslate, userStatus, selected_domain);
+        const aiResults = await runAnalysis(textToTranslate, userStatus, selected_domain); // ⭐️ selected_domain (한글)을 그대로 AI로 전달
 
         // 4. 번역 결과를 'Analysis_Result' 테이블에 저장
         const resultSql = `
