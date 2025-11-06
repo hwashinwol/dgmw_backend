@@ -108,7 +108,7 @@ const handleTranslationRequest = async (req, res) => {
             const todayUsageSql = `
                 SELECT COUNT(*) as usageCount
                 FROM Translation_Job
-                WHERE user_id = ? AND DATE(created_at) = CURDATE()
+                WHERE user_id = ? AND DATE(requested_at) = CURDATE()
             `;
             const [usageRows] = await db.execute(todayUsageSql, [userId]);
             const usageCount = usageRows[0].usageCount;

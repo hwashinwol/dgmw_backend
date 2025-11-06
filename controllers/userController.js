@@ -8,7 +8,6 @@ const isStripeEnabled = stripeKey && stripeKey !== 'sk_test_...' && stripeKey.tr
 
 /**
  * @desc    내 정보 조회 (마이페이지)
- * (이 함수는 수정사항 없습니다)
  */
 exports.getUserMe = async (req, res) => {
     const { userId } = req.user;
@@ -16,17 +15,36 @@ exports.getUserMe = async (req, res) => {
 
     try {
         db = await pool.getConnection(); 
-        const [rows] = await db.query(
+        const [userRows] = await db.execute(
             `SELECT user_id, email, status, subscription_start_date, subscription_end_date, auto_renew 
              FROM user 
              WHERE user_id = ?`,
             [userId]
         );
 
-        if (rows.length === 0) {
+        if (userRows.length === 0) {
             return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
         }
-        res.json(rows[0]);
+
+        const userProfile = userRows[0];
+        let usageCount = 0;
+        
+        if (userProfile.status === 'free') {
+            const todayUsageSql = `
+                SELECT COUNT(*) AS count
+                FROM translation_job
+                where user_id = ? AND DATE(requested_at) = CURDATE()
+            `;
+            const [usageRows] = await db.execute(todayUsageSql, [userId]);
+            usageCount = usageRows[0].count;
+        }
+
+        const finalUserData = {
+            ...userProfile,
+            usageCount: usageCount
+        };
+
+        res.json(finalUserData);
 
     } catch (error) {
         logger.error('[User] 내 정보 조회 실패:', { userId, message: error.message });
@@ -34,7 +52,7 @@ exports.getUserMe = async (req, res) => {
     } finally {
         if (db) { 
             db.release();
-            // logger.info('[User/Me] DB Connection released.'); // (로그가 너무 많아 주석 처리)
+            // logger.info('[User/Me] DB Connection released.');
         }
     }
 };

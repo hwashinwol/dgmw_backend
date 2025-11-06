@@ -3,3 +3,5 @@
 2025-11-05 12:45:24 [31merror[39m: [Auth] Google OAuth 콜백 처리 실패: secretOrPrivateKey must have a value
 2025-11-05 14:06:44 [31merror[39m: 번역 작업 처리 중 에러 발생: Data truncated for column 'selected_domain' at row 1
 2025-11-05 14:06:51 [31merror[39m: 번역 작업 처리 중 에러 발생: Data truncated for column 'selected_domain' at row 1
+2025-11-06 13:05:38 [31merror[39m: 번역 작업 처리 중 에러 발생: Unknown column 'created_at' in 'where clause'
+2025-11-06 13:05:48 [31merror[39m: 번역 작업 처리 중 에러 발생: Unknown column 'created_at' in 'where clause'
