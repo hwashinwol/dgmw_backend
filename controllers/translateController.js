@@ -109,7 +109,7 @@ const handleTranslationRequest = async (req, res) => {
             const [usageRows] = await db.execute(todayUsageSql, [userId]);
             const usageCount = usageRows[0].usageCount;
 
-            if (usageCount >= 100) {  
+            if (usageCount >= 5) {  
                 logger.warn(`[Usage Limit] 무료 사용자 일일 사용량 초과. UserID: ${userId} (Count: ${usageCount})`);
                 return res.status(429).json({ error: "비회원 및 무료등급 회원은 하루에 5회까지만 요청할 수 있습니다." });
             }

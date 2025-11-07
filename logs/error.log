@@ -23,3 +23,32 @@
 2025-11-06 14:55:38 [31merror[39m: [AI Service] Papago API (번역) 호출 실패:
 2025-11-06 15:54:28 [31merror[39m: [AI Service] Papago 언어 감지 실패:
 2025-11-06 15:54:28 [31merror[39m: [AI Service] Papago API (번역) 호출 실패:
+2025-11-07 11:52:26 [31merror[39m: [Payment] Checkout 세션 생성 실패: frontendUrl is not defined
+2025-11-07 11:52:26 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:03:20 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:03:20 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:03:20 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:03:20 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:00 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:01 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:01 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:04:38 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:51 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:51 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:51 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:51 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:11:52 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:12:14 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
+2025-11-07 12:35:54 [31merror[39m: [Webhook] DB 처리 실패: Column 'transaction_id' cannot be null
+2025-11-07 13:09:35 [31merror[39m: [Webhook] DB 처리 실패: Column 'transaction_id' cannot be null
