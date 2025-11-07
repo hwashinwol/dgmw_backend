@@ -52,3 +52,26 @@
 2025-11-07 12:12:14 [31merror[39m: [Webhook] 서명 검증 실패: No webhook payload was provided.
 2025-11-07 12:35:54 [31merror[39m: [Webhook] DB 처리 실패: Column 'transaction_id' cannot be null
 2025-11-07 13:09:35 [31merror[39m: [Webhook] DB 처리 실패: Column 'transaction_id' cannot be null
+2025-11-07 13:50:31 [31merror[39m: [Webhook] DB 처리 실패: Invalid time value
+2025-11-07 13:51:03 [31merror[39m: [Webhook] DB 처리 실패: Invalid time value
+2025-11-07 14:31:45 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): session is not defined
+2025-11-07 14:31:46 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: invoice.payment_succeeded): session is not defined
+2025-11-07 14:36:54 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Invalid time value
+2025-11-07 14:40:32 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'subscription.current_period_end' 값이 유효하지 않습니다 (Value: undefined). 롤백합니다.
+2025-11-07 14:40:32 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed):
+2025-11-07 14:45:11 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'subscription.current_period_end' 값이 유효하지 않습니다 (Value: undefined). 롤백합니다.
+2025-11-07 14:45:11 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed):
+2025-11-07 14:46:21 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'subscription.current_period_end' 값이 유효하지 않습니다 (Value: undefined). 롤백합니다.
+2025-11-07 14:46:21 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed):
+2025-11-07 14:48:25 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'subscription.current_period_end' 값이 유효하지 않습니다 (Value: undefined). 롤백합니다.
+2025-11-07 14:48:25 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed):
+2025-11-07 14:52:28 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'subscription.current_period_end' 값이 유효하지 않습니다 (Value: undefined). 롤백합니다.
+2025-11-07 14:52:28 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed):
+2025-11-07 14:55:06 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'trial_end'와 'current_period_end'가 모두 유효하지 않습니다. (롤백)
+2025-11-07 14:55:06 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Invalid periodEndTimestamp (trial_end and current_period_end are both null)
+2025-11-07 14:56:21 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'trial_end'와 'current_period_end'가 모두 유효하지 않습니다. (롤백)
+2025-11-07 14:56:21 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Invalid periodEndTimestamp (trial_end and current_period_end are both null)
+2025-11-07 15:02:17 [31merror[39m: [Webhook] ❌ checkout.session.completed: 'trial_end'와 'current_period_end'가 모두 유효하지 않습니다. (롤백)
+2025-11-07 15:02:17 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Invalid periodEndTimestamp
+2025-11-07 15:07:58 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Column 'transaction_id' cannot be null
+2025-11-07 15:16:57 [31merror[39m: [Webhook] invoice.payment_succeeded에 subscriptionId 또는 customerId가 없습니다.
