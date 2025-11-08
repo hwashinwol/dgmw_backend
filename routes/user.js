@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const authMiddleware = require('../utils/authMiddleware'); // 인증 미들웨어
+const authMiddleware = require('../utils/authMiddleware');
 
 /**
  * @route   GET /api/v1/user/me

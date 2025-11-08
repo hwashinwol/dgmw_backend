@@ -1,4 +1,3 @@
-// 3. 메인 서비스 파일
 require('dotenv').config();
 
 // 분리된 모듈 import
@@ -12,8 +11,7 @@ const {
 const logger = require('../utils/logger');
 
 /**
- * 7️⃣ 전체 실행 (Orchestration)
- * - 등급과 분야에 따라 API 호출과 점수 계산을 조율
+ * 전체 실행 (Orchestration)
  */
 async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain = 'NULL') {
     logger.info(`[AI 서비스] 번역 시작... (등급: ${userStatus}, 분야: ${selected_domain})`);
@@ -46,20 +44,18 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
     }
 
     if (userStatus === 'paid') {
-        // 1. API 호출에 성공한 결과만 필터링합니다.
         const successfulResults = finalResults.filter(r => !r.error);
 
         if (successfulResults.length > 0) {
-            // 2. 3개의 번역문을 '1번의' API 호출로 평가합니다.
+            // 3개의 번역문을 API 호출로 한 번만 하여 평가
             logger.info(`[AI 서비스] Batch Spectrum Score 평가 시작... (모델 ${successfulResults.length}개)`);
             const batchScoreObjects = await getSpectrumScores_Batch(
                 textToTranslate, 
                 successfulResults, 
                 selected_domain
             );
-            // (결과 예: [{ model_name: 'gpt-4o', spectrum_score: 2.0 }, ...])
 
-            // 3. 빠른 조회를 위해 점수 맵(Map)을 생성합니다.
+            // 점수 맵 생성
             const scoreMap = new Map(
                 batchScoreObjects.map(s => [s.model_name, s.spectrum_score])
             );

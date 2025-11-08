@@ -4,8 +4,7 @@ const multer = require('multer');
 
 const {handleTranslationRequest} = require("../controllers/translateController");
 
-// Multer 설정: 라우터 레벨에서 파일 파싱을 처리해야
-// 파일 파싱은 라우터 레벨에서 처리, 컨트롤러가 req.file 객체에 접근하기 위함
+// Multer 설정: 라우터 레벨에서 파일 파싱을 처리
 const upload = multer({ 
     storage: multer.memoryStorage(),
 });

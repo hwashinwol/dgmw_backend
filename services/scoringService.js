@@ -42,15 +42,13 @@ function getComplexityScore(text) {
 }
 
 // ─────────────────────────────
-// 2️⃣ Spectrum 점수 (Batch) (⭐️ 신규 추가 - 비용 절감)
+// 2️⃣ Spectrum 점수 
 // ─────────────────────────────
 /**
- * 3개의 번역 결과를 GPT-4o에 한 번에 보내어 평가받습니다.
  * @param {string} originalText 원본 텍스트
  * @param {Array<Object>} translations - 번역 결과 객체 배열. 
- * (e.g., [{ model_name: "gpt-4o", translated_text: "..." }, ...])
  * @param {string} selected_domain - 선택된 전문 분야
- * @returns {Promise<Array<Object>>} - e.g., [{ model_name: "gpt-4o", spectrum_score: 2.5 }, ...]
+ * @returns {Promise<Array<Object>>} 
  */
 async function getSpectrumScores_Batch(originalText, translations, selected_domain) {
     if (!originalText || !translations || translations.length === 0) return [];
@@ -114,9 +112,8 @@ Ensure 'model_name' matches the models provided in the [Translations] block exac
         const raw = response.data.choices[0].message.content;
         try {
             const json = JSON.parse(raw);
-            // "scores" 키가 존재하고, 배열인지 확인
             if (json.scores && Array.isArray(json.scores)) {
-                return json.scores; // (e.g., [{ model_name: "gpt-4o", spectrum_score: 2.5 }, ...])
+                return json.scores; 
             } else {
                 throw new Error("응답 JSON 포맷이 'scores' 배열을 포함하지 않습니다.");
             }

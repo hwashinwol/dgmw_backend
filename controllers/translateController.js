@@ -1,17 +1,15 @@
 // 4. 컨트롤러 로직 (신규)
-// - routes/translate.js에서 분리됨
-// ----------------------------------------------------
 const pool = require('../config/db');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const s3Client = require("../config/storage");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const { runAnalysis } = require('../services/aiService'); // ⭐️ aiService(Orchestrator) 호출
+const { runAnalysis } = require('../services/aiService'); 
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken'); 
 const path = require('path'); 
 
-// ⭐️ [신규] 비회원 IP 기반 사용량 추적기 (서버 재시작 시 초기화됨)
+// 비회원 IP 기반 사용량 추적기 (서버 재시작 시 초기화)
 const anonymousUsage = new Map();
 
 const domainMapper = {
@@ -51,8 +49,7 @@ const handleTranslationRequest = async (req, res) => {
                 // 토큰 검증
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
                 
-                // (중요) 토큰이 유효하면, req.user에서 userId와 status를 가져옴
-                // 이 decoded 객체는 authController에서 sign했던 페이로드와 동일
+                // 토큰이 유효하면, req.user에서 userId와 status를 가져옴
                 userId = decoded.userId;
                 userStatus = decoded.status;
                 logger.info(`[Auth/Translate] 인증된 사용자 요청: ${decoded.email} (Status: ${userStatus})`);
@@ -98,8 +95,8 @@ const handleTranslationRequest = async (req, res) => {
             logger.info(`[Usage] 비회원 IP 사용량 증가. IP: ${ip}, Count: ${newCount}`);
         }
 
-        // ⭐️ [신규 기능 2] 무료 *회원* 일일 5회 제한 로직
-        // (DB 서버 시간이 KST 기준이라고 가정)
+        // 무료 회원 일일 5회 제한 로직
+        // 서버시간은 KST 기준
         if (userId && userStatus === 'free') {
             const todayUsageSql = `
                 SELECT COUNT(*) as usageCount
@@ -113,9 +110,7 @@ const handleTranslationRequest = async (req, res) => {
                 logger.warn(`[Usage Limit] 무료 사용자 일일 사용량 초과. UserID: ${userId} (Count: ${usageCount})`);
                 return res.status(429).json({ error: "비회원 및 무료등급 회원은 하루에 5회까지만 요청할 수 있습니다." });
             }
-            // (사용량 카운트는 아래 DB INSERT 시 자동으로 누적됩니다)
         }
-        // ⭐️ [신규 기능 종료]
 
         // 1. 입력 처리 (Text or File)
         if (inputType === 'text') {
@@ -168,7 +163,7 @@ const handleTranslationRequest = async (req, res) => {
             finalStoragePath = fileKey; 
         }
 
-        // ⭐️ [수정 2] 한글 도메인 -> 영어 ENUM 값으로 매핑
+        // 한글 도메인 -> 영어 ENUM 값으로 매핑
         const dbDomainValue = domainMapper[selected_domain] || null;
 
         // 2. 'Translation_Job' DB에 저장
@@ -181,13 +176,12 @@ const handleTranslationRequest = async (req, res) => {
             finalInputText, // text 입력 시 본문, file 입력 시 null
             finalStoragePath, // file 입력 시 S3 경로, text 입력 시 null
             finalCharCount, 
-            (userStatus === 'paid' ? dbDomainValue : null) // ⭐️ [수정 3] 매핑된 값(dbDomainValue)을 저장
+            (userStatus === 'paid' ? dbDomainValue : null) // 매핑된 값 저장
         ]);
         newJobId = jobResult.insertId; 
 
         // 3. AI 서비스(Orchestrator) 호출
-        // (컨트롤러는 aiService가 어떻게 동작하는지 알 필요가 없음)
-        const aiResults = await runAnalysis(textToTranslate, userStatus, selected_domain); // ⭐️ selected_domain (한글)을 그대로 AI로 전달
+        const aiResults = await runAnalysis(textToTranslate, userStatus, selected_domain); 
 
         // 4. 번역 결과를 'Analysis_Result' 테이블에 저장
         const resultSql = `
@@ -197,7 +191,6 @@ const handleTranslationRequest = async (req, res) => {
         `;
 
         if (inputType === 'text') {
-            // [Text 입력] -> 번역 결과가 짧으므로 DB에 바로 저장
             for (const result of aiResults) {
                 if (result.error) continue;
                 await pool.execute(resultSql, [
@@ -210,7 +203,7 @@ const handleTranslationRequest = async (req, res) => {
                 ]);
             }
         } else if (inputType === 'file') {
-            // [File 입력] -> 번역 결과가 길기 때문에 S3(NCP)에 업로드
+            // 파일 입력 -> 번역 결과가 길기 때문에 S3(NCP)에 업로드
             for (const result of aiResults) {
                 if (result.error) continue;
                 
@@ -234,7 +227,6 @@ const handleTranslationRequest = async (req, res) => {
             }
         }
 
-        // 5. 최종 응답
         const successfulResults = aiResults.filter(r => !r.error);
 
         res.status(201).json({
@@ -245,7 +237,7 @@ const handleTranslationRequest = async (req, res) => {
             charCount: finalCharCount,
             storagePath: finalStoragePath,
             selected_domain: (userStatus === 'paid' ? selected_domain : null),
-            results: successfulResults // 성공한 AI 결과만 응답
+            results: successfulResults 
         });
 
     } catch (error) {

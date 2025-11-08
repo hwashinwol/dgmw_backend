@@ -47,7 +47,7 @@ app.use(express.urlencoded({ extended: false }));
 // 5. 핵심 API 라우트 연결
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/translate', translateRoutes);
-app.use('/api/v1/user', userRouter); // ⭐️ (수정) 항상 활성화되도록 위치 변경
+app.use('/api/v1/user', userRouter); // 항상 활성화
 
 // 6. "Hello World" 테스트용 API
 app.get('/', (req, res) => {

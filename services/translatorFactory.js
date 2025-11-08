@@ -5,9 +5,7 @@ const { Translate } = require("@google-cloud/translate").v2;
 const {
     OPENAI_API_KEY,
     GOOGLE_API_KEY,
-    ANTHROPIC_API_KEY,
-    PAPAGO_CLIENT_ID,
-    PAPAGO_CLIENT_SECRET
+    ANTHROPIC_API_KEY
 } = process.env;
 
 // Google NMT (Free tier)
@@ -21,8 +19,6 @@ const logger = require('../utils/logger');
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const GOOGLE_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-// const PAPAGO_ENDPOINT = 'https://naveropenapi.apigw.ntruss.com/nmt/v1/translation';
-// const PAPAGO_DETECT_ENDPOINT = 'https://naveropenapi.apigw.ntruss.com/langs/v1/detect';
 
 // 3️⃣ OpenAI (GPT)
 async function callOpenAI(model, textToTranslate) {

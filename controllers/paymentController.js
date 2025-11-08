@@ -19,10 +19,6 @@ exports.createCheckoutSession = async (req, res) => {
     const { userId, email } = req.user;
     const priceId = process.env.STRIPE_PRICE_ID;
     const frontendUrl = process.env.FRONTEND_URL;
-    
-    logger.warn('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-    logger.warn(`[ENV TEST] 서버가 읽은 Price ID: ${priceId}`);
-    logger.warn('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
 
     let db; 
 
@@ -85,9 +81,9 @@ exports.handleStripeWebhook = async (req, res) => {
 
         switch (event.type) {
             
-            // --- [1] 최초 구독 완료 ---
-            // [최종 수정] 이 이벤트는 '유저 상태'만 업데이트합니다.
-            // (결제 내역 INSERT 로직 완전 삭제)
+            // --- 최초 결제(구독) 완료 ---
+            // [최종 수정] 이 이벤트는 '유저 상태'만 업데이트
+            // (결제 내역 INSERT 로직 완전 삭제 <- 왜?
             case 'checkout.session.completed': {
                 const session = event.data.object;
                 const subscriptionId = session.subscription;
@@ -99,19 +95,18 @@ exports.handleStripeWebhook = async (req, res) => {
                 }
 
                 const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-                // (무료 평가판 || 유료 플랜) 날짜 가져오기
                 const periodEndTimestamp = subscription.trial_end || subscription.current_period_end;
                 
-                let mysqlDateTime = null; // 기본 NULL (완전 무료 플랜)
+                let mysqlDateTime = null; 
                 if (periodEndTimestamp) {
                     const currentPeriodEnd = new Date(periodEndTimestamp * 1000);
                     if (isNaN(currentPeriodEnd.getTime())) { throw new Error("Date object is invalid."); }
                     mysqlDateTime = toMySQLDateTime(currentPeriodEnd);
                 } else {
-                    logger.warn(`[Webhook] ℹ️ 'trial_end'와 'current_period_end'가 모두 없습니다. (무료 플랜 추정) subscription_end_date를 NULL로 설정합니다.`);
+                    logger.warn(`[Webhook] 'trial_end'와 'current_period_end'가 모두 없습니다. subscription_end_date를 NULL로 설정합니다.`);
                 }
                 
-                // [역할] User 테이블의 상태/날짜만 업데이트
+                // User 테이블의 상태/날짜만 업데이트
                 await db.query(
                     `UPDATE user 
                      SET status = 'paid', 
@@ -123,7 +118,7 @@ exports.handleStripeWebhook = async (req, res) => {
                     [subscriptionId, mysqlDateTime, true, userId]
                 );
                 
-                logger.info(`[Webhook] ✅ checkout.session.completed (User: ${userId}) [유저 상태] 업데이트 완료.`);
+                logger.info(`[Webhook] checkout.session.completed (User: ${userId}) [유저 상태] 업데이트 완료.`);
                 break;
             }
 
@@ -138,22 +133,21 @@ exports.handleStripeWebhook = async (req, res) => {
                     break;
                 }
                 
-                // [역할] 결제 금액이 0보다 클 때만 '결제 내역(History)' INSERT
+                // 결제 금액이 0보다 클 때만 '결제 내역(History)' INSERT
                 const finalAmount = invoice.amount_paid / 100;
                 
                 if (finalAmount > 0) {
                     // Customer ID로 User ID 찾기
                     const [rows] = await db.query('SELECT user_id FROM user WHERE stripe_customer_id = ?', [customerId]);
                     if (rows.length === 0) {
-                        logger.error(`[Webhook] ❌ CustomerID ${customerId}에 해당하는 유저를 찾지 못했습니다.`);
+                        logger.error(`[Webhook] CustomerID ${customerId}에 해당하는 유저를 찾지 못했습니다.`);
                         break; // 롤백 없이 이 이벤트만 중단
                     }
                     const userId = rows[0].user_id;
 
-                    // 'session.payment_intent' (X) -> 'invoice.payment_intent' (O)
                     const transactionId = invoice.payment_intent; 
                     if (!transactionId) {
-                        logger.error(`[Webhook] ❌ 유료 결제(Amount: ${finalAmount})인데 payment_intent가 없습니다. 롤백합니다.`);
+                        logger.error(`[Webhook] 유료 결제(Amount: ${finalAmount})인데 payment_intent가 없습니다. 롤백합니다.`);
                         throw new Error('Paid invoice is missing transactionId (payment_intent)');
                     }
 
@@ -169,7 +163,7 @@ exports.handleStripeWebhook = async (req, res) => {
                     
                     logger.info(`[Webhook] ✅ invoice.payment_succeeded (User: ${userId}) [결제 내역] 기록 완료.`);
 
-                    // [추가] 갱신 시 유저의 다음 결제일도 업데이트
+                    // 갱신 시 유저의 다음 결제일 업데이트
                     if (paymentType === 'renewal') {
                         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
                         const periodEndTimestamp = subscription.current_period_end;
@@ -189,7 +183,6 @@ exports.handleStripeWebhook = async (req, res) => {
                 break;
             }
 
-            // ... case 'customer.subscription.updated' 및 'invoice.payment_failed' (이전과 동일) ...
             case 'customer.subscription.updated': {
                 const subscription = event.data.object;
                 if (subscription.cancel_at_period_end) { 
@@ -214,27 +207,27 @@ exports.handleStripeWebhook = async (req, res) => {
             case 'invoice.payment_failed': {
                 const customerId = event.data.object.customer;
                 await db.query("UPDATE user SET status = 'past_due' WHERE stripe_customer_id = ?", [customerId]);
-                logger.warn(`[Webhook] ⚠️ invoice.payment_failed (Customer: ${customerId})`);
+                logger.warn(`[Webhook] invoice.payment_failed (Customer: ${customerId})`);
                 break;
             }
 
             default:
-                logger.info(`[Webhook] 🤷‍♂️ 처리되지 않은 이벤트: ${event.type}`);
+                logger.info(`[Webhook] 처리되지 않은 이벤트: ${event.type}`);
         }
 
         await db.commit();
-        logger.info(`[Webhook] 🚀 Transaction Committed for event ${event.type}.`);
+        logger.info(`[Webhook] Transaction Committed for event ${event.type}.`);
         res.status(200).send({ received: true });
 
     } catch (error) {
-        logger.error(`[Webhook] ❌ DB 처리 실패 (Event: ${event.type}):`, error); 
+        logger.error(`[Webhook] DB 처리 실패 (Event: ${event.type}):`, error); 
         
         if (db) {
             try {
                 await db.rollback();
-                logger.info('[Webhook] ⏪ Transaction Rolled Back.');
+                logger.info('[Webhook] Transaction Rolled Back.');
             } catch (rollBackError) {
-                logger.error('[Webhook] ❌ 롤백 실패:', rollBackError);
+                logger.error('[Webhook] 롤백 실패:', rollBackError);
             }
         }
         

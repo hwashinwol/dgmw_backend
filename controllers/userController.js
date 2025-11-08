@@ -1,8 +1,7 @@
 const pool = require('../config/db');
 const logger = require('../utils/logger');
-// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // (실제 운영 시 주석 해제)
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // 실제 운영 시 활성화 <- 지금하면 안됨?
 
-// ⭐️ Stripe 키가 있는지 확인하여 모드를 결정합니다.
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 const isStripeEnabled = stripeKey && stripeKey !== 'sk_test_...' && stripeKey.trim() !== '';
 
@@ -52,14 +51,13 @@ exports.getUserMe = async (req, res) => {
     } finally {
         if (db) { 
             db.release();
-            // logger.info('[User/Me] DB Connection released.');
+            logger.info('[User/Me] DB Connection released.');
         }
     }
 };
 
 /**
  * @desc    구독 취소 (자동 갱신 끄기)
- * ⭐️ (수정) '모의 모드' 분기 처리 추가
  */
 exports.cancelSubscription = async (req, res) => {
     const { userId, email } = req.user;
@@ -100,7 +98,6 @@ exports.cancelSubscription = async (req, res) => {
 
 /**
  * @desc    회원탈퇴
- * ⭐️ (수정) '모의 모드' 분기 처리 추가
  */
 exports.deleteUser = async (req, res) => {
     const { userId, email } = req.user;
@@ -126,7 +123,7 @@ exports.deleteUser = async (req, res) => {
             // Stripe API 호출 없이 DB 삭제만 진행
         }
 
-        // (공통) DB에서 사용자 관련 데이터 삭제 (외래 키 제약조건 순서대로)
+        // DB에서 사용자 관련 데이터 삭제 (외래 키 제약조건 순서대로)
         await db.query('DELETE FROM analysis_result WHERE job_id IN (SELECT job_id FROM translation_job WHERE user_id = ?)', [userId]);
         await db.query('DELETE FROM translation_job WHERE user_id = ?', [userId]);
         await db.query('DELETE FROM user WHERE user_id = ?', [userId]);
@@ -137,7 +134,7 @@ exports.deleteUser = async (req, res) => {
         res.status(200).json({ message: "회원 탈퇴가 완료되었습니다." });
 
     } catch (error) {
-        if (db) await db.rollback(); // 오류 시 롤백
+        if (db) await db.rollback(); 
         logger.error('[User] 회원 탈퇴 실패:', { userId, message: error.message });
         res.status(500).json({ error: "서버 오류" });
     } finally {
