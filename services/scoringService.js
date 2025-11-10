@@ -13,7 +13,7 @@ const logger = require('../utils/logger');
  */
 function getSpectrumFeedback(score) {
     if (score === null || score === undefined) return null;
-    
+
     const numericScore = Number(score);
     if (isNaN(numericScore)) {
         return null; 
@@ -64,29 +64,49 @@ function getComplexityScore(text) {
     }
 }
 
-// ─────────────────────────────
-// 2️⃣ Spectrum 점수 (Batch)
-// ─────────────────────────────
 /**
+ * 2️⃣ Spectrum 점수 (Batch) - 도메인 기반 평가
  * @param {string} originalText 원본 텍스트
- * @param {Array<Object>} translations - 번역 결과 객체 배열. 
+ * @param {Array<Object>} translations - 번역 결과 객체 배열
  * @param {string} selected_domain - 선택된 전문 분야
- * @returns {Promise<Array<Object>>} 
+ * @returns {Promise<Array<Object>>}
  */
 async function getSpectrumScores_Batch(originalText, translations, selected_domain) {
     if (!originalText || !translations || translations.length === 0) return [];
 
-    let domainInstruction = "";
+    // 도메인별 평가 기준
+    const domainRulesMap = {
+        "engineering": "In engineering domain, prioritize technical accuracy and precise terminology. Literal translation is generally preferred for clarity.",
+        "social_science": "In social sciences, maintain conceptual accuracy, but allow natural phrasing for readability.",
+        "art": "In arts domain, prioritize expressive, natural translation. Free translation is acceptable to convey nuance.",
+        "medical": "In medical domain, prioritize accuracy and safety. Literal translation is strongly preferred.",
+        "law": "In legal domain, maintain strict legal terminology. Literal translation is required.",
+        "nature_science": "In natural sciences, technical accuracy is critical. Literal translation is generally preferred.",
+        "humanities": "In humanities, natural and fluent translation is important. Free translation is acceptable to convey meaning and style."
+    };
+
+    // 도메인 지시문 생성
+    let domainInstruction = '';
     if (selected_domain && selected_domain.toLowerCase() !== 'null' && selected_domain.trim() !== '') {
+        const domainRule = domainRulesMap[selected_domain] || 
+            "The text is general. Evaluate it based on standard translation conventions.";
         domainInstruction = `
-The text is from the [Domain: ${selected_domain}]. 
-Your evaluation must be based on the translation conventions of this specific field.
-(e.g., law/medical fields often require literal translation, while art/humanities fields may prefer free translation.)
+The text is from the domain: ${selected_domain}.
+${domainRule}
+Score each translation from 1.0 to 10.0.
+1.0 = 100% Literal (직역)
+10.0 = 100% Free (의역)
 `;
     } else {
-        domainInstruction = "The text is general. Evaluate it based on standard translation conventions.";
+        domainInstruction = `
+The text is general. Evaluate it based on standard translation conventions.
+Score each translation from 1.0 to 10.0.
+1.0 = 100% Literal (직역)
+10.0 = 100% Free (의역)
+`;
     }
 
+    // 번역문 블록 생성
     const translationsBlock = translations.map(t => `
 ---
 [Model: ${t.model_name}]
@@ -94,23 +114,12 @@ ${t.translated_text}
 ---
 `).join('\n');
 
+    // 평가 프롬프트
     const prompt = `
 You are an evaluator for a translation service.
 ${domainInstruction}
 
 Analyze the style of the [Translations] provided below, compared to the [Original Text].
-Is the translation a "Literal Translation" (strict, word-for-word) or a "Free Translation" (creative, nuance-focused)?
-
-Score each translation from 1.0 to 10.0.
-1.0 = 100% Literal (직역)
-10.0 = 100% Free (의역)
-
-[Original Text]:
-${originalText}
-
-[Translations]:
-${translationsBlock}
-
 Respond ONLY with a single JSON object in the format:
 {
   "scores": [
@@ -120,6 +129,11 @@ Respond ONLY with a single JSON object in the format:
   ]
 }
 Ensure 'model_name' matches the models provided in the [Translations] block exactly.
+[Original Text]:
+${originalText}
+
+[Translations]:
+${translationsBlock}
 `;
 
     try {
@@ -135,28 +149,25 @@ Ensure 'model_name' matches the models provided in the [Translations] block exac
         try {
             const json = JSON.parse(raw);
             if (json.scores && Array.isArray(json.scores)) {
-                
-                // 반환되는 scores 배열에 피드백 문장 
+                // 피드백 추가
                 const enhancedScores = json.scores.map(scoreItem => ({
                     ...scoreItem,
                     spectrum_feedback: getSpectrumFeedback(scoreItem.spectrum_score)
                 }));
-                
                 return enhancedScores;
-
             } else {
                 throw new Error("응답 JSON 포맷이 'scores' 배열을 포함하지 않습니다.");
             }
         } catch (parseError) {
-            logger.error("Spectrum Score (Batch) JSON 파싱 실패:", { 
-                rawText: raw, 
-                message: parseError.message, 
-                stack: parseError.stack 
+            logger.error("Spectrum Score (Batch) JSON 파싱 실패:", {
+                rawText: raw,
+                message: parseError.message,
+                stack: parseError.stack
             });
             return [];
         }
     } catch (apiError) {
-        logger.error("Spectrum Score (Batch) API 호출 실패:", { 
+        logger.error("Spectrum Score (Batch) API 호출 실패:", {
             message: apiError.response?.data || apiError.message,
             stack: apiError.stack
         });
