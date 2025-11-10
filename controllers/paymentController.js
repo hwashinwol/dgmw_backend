@@ -8,7 +8,7 @@ const isStripeEnabled = stripeKey && stripeKey.length > 10;
 if (isStripeEnabled) {
     logger.info('[Stripe] Stripe 결제 모듈이 [테스트 모드]로 활성화되었습니다.');
 } else {
-    logger.warn('[Stripe] Stripe 키가 .env에 설정되지 않았습니다. [모의 모드]로 동작합니다.'); // 문제없음
+    logger.warn('[Stripe] Stripe 키가 .env에 설정되지 않았습니다'); 
 }
 
 const toMySQLDateTime = (date) => {
@@ -83,7 +83,7 @@ exports.handleStripeWebhook = async (req, res) => {
             
             // --- 최초 결제(구독) 완료 ---
             // [최종 수정] 이 이벤트는 '유저 상태'만 업데이트
-            // (결제 내역 INSERT 로직 완전 삭제 <- 왜?
+            // (결제 내역 INSERT 로직 완전 삭제 
             case 'checkout.session.completed': {
                 const session = event.data.object;
                 const subscriptionId = session.subscription;
