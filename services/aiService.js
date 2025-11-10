@@ -57,16 +57,21 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
 
             // 점수 맵 생성
             const scoreMap = new Map(
-                batchScoreObjects.map(s => [s.model_name, s.spectrum_score])
+                batchScoreObjects.map(s => [s.model_name, { 
+                    spectrum_score: s.spectrum_score, 
+                    spectrum_feedback: s.spectrum_feedback 
+                }])
             );
 
             // 4. finalResults에 스펙트럼 점수를 병합합니다.
             finalResults = finalResults.map(res => {
-                if (res.error) return res; // 에러난 결과는 그대로 반환
+                if (res.error) return res;
+                const scoreData = scoreMap.get(res.model_name);
+
                 return {
                     ...res,
-                    // 맵에서 모델 이름으로 점수를 찾아 할당합니다.
-                    spectrum_score: scoreMap.get(res.model_name) || null 
+                    spectrum_score: scoreData?.spectrum_score ?? null,
+                    spectrum_feedback: scoreData?.spectrum_feedback ?? null
                 };
             });
         

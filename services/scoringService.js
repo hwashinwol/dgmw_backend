@@ -4,6 +4,29 @@ const { OPENAI_API_KEY } = process.env;
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const logger = require('../utils/logger');
 
+
+// 스펙트럼 점수 기반 피드백 문장
+/**
+ * 스펙트럼 점수에 따라 정성적 피드백 문구를 반환합니다.
+ * @param {number | string | null} score - 스펙트럼 점수
+ * @returns {string | null} 
+ */
+function getSpectrumFeedback(score) {
+    if (score === null || score === undefined) return null;
+    
+    const numericScore = Number(score);
+    if (isNaN(numericScore)) {
+        return null; 
+    }
+
+    if (numericScore <= 5.0) {
+        return `스펙트럼 점수가 ${numericScore.toFixed(1)}로 직역에 가깝습니다.`;
+    } else {
+        return `스펙트럼 점수가 ${numericScore.toFixed(1)}로 의역에 가깝습니다.`;
+    }
+}
+// -----------------------------------------------------------------
+
 /**
  * 1. 복잡성 점수 (ACLW)
  * @param {string} text - 번역된 텍스트
@@ -42,7 +65,7 @@ function getComplexityScore(text) {
 }
 
 // ─────────────────────────────
-// 2️⃣ Spectrum 점수 
+// 2️⃣ Spectrum 점수 (Batch)
 // ─────────────────────────────
 /**
  * @param {string} originalText 원본 텍스트
@@ -64,7 +87,6 @@ Your evaluation must be based on the translation conventions of this specific fi
         domainInstruction = "The text is general. Evaluate it based on standard translation conventions.";
     }
 
-    // [Translations] 블록을 동적으로 생성
     const translationsBlock = translations.map(t => `
 ---
 [Model: ${t.model_name}]
@@ -113,7 +135,15 @@ Ensure 'model_name' matches the models provided in the [Translations] block exac
         try {
             const json = JSON.parse(raw);
             if (json.scores && Array.isArray(json.scores)) {
-                return json.scores; 
+                
+                // 반환되는 scores 배열에 피드백 문장 
+                const enhancedScores = json.scores.map(scoreItem => ({
+                    ...scoreItem,
+                    spectrum_feedback: getSpectrumFeedback(scoreItem.spectrum_score)
+                }));
+                
+                return enhancedScores;
+
             } else {
                 throw new Error("응답 JSON 포맷이 'scores' 배열을 포함하지 않습니다.");
             }
@@ -154,6 +184,7 @@ Your evaluation must be based on the translation conventions of this specific fi
         domainInstruction = "The text is general. Evaluate it based on standard translation conventions.";
     }
 
+    // ⭐️ [수정] JSON 포맷에 spectrum_feedback 추가 요청
     const prompt = `
 You are an evaluator for a translation service.
 ${domainInstruction}
@@ -161,10 +192,15 @@ ${domainInstruction}
 Analyze the style of the [Translated Text] compared to the [Original Text].
 Is the translation a "Literal Translation" (strict, word-for-word, prioritizes source structure) or a "Free Translation" (creative, prioritizes target nuance and meaning)?
 
-Respond ONLY with a JSON object in the format: {"spectrum_score": X}
+Respond ONLY with a JSON object in the format: {
+    "spectrum_score": X.X,
+    "spectrum_feedback": "Your feedback text here"
+}
 Where X is a single number from 1.0 to 10.0.
 1.0 = 100% Literal (원문에 충실한 직역, [Domain] 맥락 고려)
 10.0 = 100% Free (의미 중심의 자연스러운 의역, [Domain] 맥락 고려)
+
+And 'spectrum_feedback' is a short analysis based on the score (e.g., "Score {X.X} means it is closer to a literal translation.").
 
 [Original Text]:
 ${originalText}
@@ -185,7 +221,14 @@ ${translatedText}
         const raw = response.data.choices[0].message.content;
         try {
             const json = JSON.parse(raw);
-            return json.spectrum_score || null;
+            if (json.spectrum_score) {
+                return {
+                    spectrum_score: json.spectrum_score,
+                    spectrum_feedback: json.spectrum_feedback || getSpectrumFeedback(json.spectrum_score)
+                };
+            }
+            return null;
+
         } catch (parseError) {
             logger.error("Spectrum Score (개별) JSON 파싱 실패:", { 
                 rawText: raw, 
@@ -205,6 +248,7 @@ ${translatedText}
 
 
 module.exports = {
+    getSpectrumFeedback,
     getComplexityScore,
     getSpectrumScores_Batch,
     getSpectrumScore // 레거시

@@ -75,3 +75,16 @@
 2025-11-07 15:02:17 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Invalid periodEndTimestamp
 2025-11-07 15:07:58 [31merror[39m: [Webhook] ❌ DB 처리 실패 (Event: checkout.session.completed): Column 'transaction_id' cannot be null
 2025-11-07 15:16:57 [31merror[39m: [Webhook] invoice.payment_succeeded에 subscriptionId 또는 customerId가 없습니다.
+2025-11-10 12:10:28 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 12:10:52 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 13:15:28 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 13:18:20 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 13:18:46 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 13:21:56 [31merror[39m: 번역 작업 처리 중 에러 발생: Bind parameters must not contain undefined. To pass SQL NULL specify JS null
+2025-11-10 13:25:21 [31merror[39m: 번역 작업 처리 중 에러 발생: Unknown column 'spectrum_feedback' in 'field list'
+2025-11-10 13:25:29 [31merror[39m: 번역 작업 처리 중 에러 발생: Unknown column 'spectrum_feedback' in 'field list'
+2025-11-10 13:32:59 [31merror[39m: 번역 작업 처리 중 에러 발생: Unknown column 'spectrum_feedback' in 'field list'
+2025-11-10 13:40:57 [31merror[39m: Claude API 호출 실패:
+2025-11-10 13:43:04 [31merror[39m: Claude API 호출 실패:
+2025-11-10 13:49:29 [31merror[39m: Claude API 호출 실패:
+2025-11-10 14:01:45 [31merror[39m: 번역 작업 처리 중 에러 발생: scoreObj is not defined

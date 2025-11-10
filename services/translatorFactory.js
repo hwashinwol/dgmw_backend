@@ -93,9 +93,17 @@ async function callGoogle(textToTranslate) {
     }
 }
 
-// 5️⃣ Claude (Anthropic)
+// Claude Sonnet 4.5
 async function callAnthropic(textToTranslate) {
     try {
+        if (!textToTranslate || !textToTranslate.trim()) {
+            return { 
+                model_name: "Claude Sonnet 4.5", 
+                translated_text: null, 
+                error: "입력 텍스트가 비어 있습니다." 
+            };
+        }
+
         const response = await axios.post(ANTHROPIC_ENDPOINT, {
             model: "claude-sonnet-4-5-20250929",
             max_tokens: 1024,
@@ -111,15 +119,25 @@ async function callAnthropic(textToTranslate) {
             }
         });
 
+        // 실제 Claude API 반환 구조에 맞게 텍스트 추출
         const text = response.data?.content?.[0]?.text?.trim() || null;
-        return { model_name: "Claude Sonnet 4.5", translated_text: text };
+
+        return { 
+            model_name: "Claude Sonnet 4.5", 
+            translated_text: text 
+        };
+
     } catch (error) {
         logger.error("Claude API 호출 실패:", error.response?.data || error.message);
-        return { model_name: "Claude Sonnet 4.5", translated_text: null, error: error.message };
+        return { 
+            model_name: "Claude Sonnet 4.5", 
+            translated_text: null, 
+            error: error.message 
+        };
     }
 }
 
-// 6️⃣ Google Translate (Standard NMT)
+// Google Translate (Standard NMT)
 async function callGoogleTranslate(textToTranslate){
     const model_name = "Google Translate(NMT)"
     try {
