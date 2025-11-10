@@ -10,7 +10,6 @@ const authRoutes = require('./routes/auth');
 const translateRoutes = require('./routes/translate');
 const userRouter = require('./routes/user'); 
 const paymentRoutes = require('./routes/payment');
-const mockPaymentRoutes = require('./routes/mock/payment');
 const paymentController = require('./controllers/paymentController');
 
 // 2. Express 앱 생성 및 포트 설정
@@ -35,10 +34,15 @@ if (isStripeEnabled) {
     );
     app.use("/api/v1/payment", paymentRoutes);
 } else {
-    // --- 3-2. [모의 모드] Stripe 키가 없을 때 ---
-    logger.warn('[APP] Stripe 키 없음. 결제 기능이 \'모의(Mock) 모드\'로 실행됩니다.');
-    app.use('/api/v1/payment',mockPaymentRoutes);
+    logger.warn('[APP] Stripe 키 없음. 결제 기능이 작동하지 않습니다');
 }
+
+app.post(
+    '/api/v1/payment/webhook',
+    express.raw({type : 'application/json'}), // ⭐️ Webhook은 express.json()보다 먼저 위치해야 합니다.
+    paymentController.handleStripeWebhook
+);
+app.use("/api/v1/payment", paymentRoutes);
 
 // 4. (필수) JSON 미들웨어
 app.use(express.json());

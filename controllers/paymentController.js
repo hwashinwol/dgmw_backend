@@ -8,7 +8,7 @@ const isStripeEnabled = stripeKey && stripeKey.length > 10;
 if (isStripeEnabled) {
     logger.info('[Stripe] Stripe 결제 모듈이 [테스트 모드]로 활성화되었습니다.');
 } else {
-    logger.warn('[Stripe] Stripe 키가 .env에 설정되지 않았습니다. [모의 모드]로 동작합니다.');
+    logger.warn('[Stripe] Stripe 키가 .env에 설정되지 않았습니다. [모의 모드]로 동작합니다.'); // 문제없음
 }
 
 const toMySQLDateTime = (date) => {
