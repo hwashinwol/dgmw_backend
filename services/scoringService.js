@@ -82,7 +82,8 @@ async function getSpectrumScores_Batch(originalText, translations, selected_doma
         "medical": "In medical domain, prioritize accuracy and safety. Literal translation is strongly preferred.",
         "law": "In legal domain, maintain strict legal terminology. Literal translation is required.",
         "nature_science": "In natural sciences, technical accuracy is critical. Literal translation is generally preferred.",
-        "humanities": "In humanities, natural and fluent translation is important. Free translation is acceptable to convey meaning and style."
+        "humanities": "In humanities, natural and fluent translation is important. Free translation is acceptable to convey meaning and style.",
+        "literature": "In literary works (novels/poems/plays), prioritize capturing the original's artistic style, tone, and emotional nuance. Natural, fluent, and expressive translation is paramount. Free translation and the creative adaptation of idioms are essential to convey the cultural context and authorial intent, even if it deviates from a literal translation."
     };
 
     // 도메인 지시문 생성

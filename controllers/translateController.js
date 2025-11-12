@@ -21,7 +21,8 @@ const domainMapper = {
     '의료': 'medical',
     '법률': 'law',
     '자연과학': 'nature_science',
-    '인문학': 'humanities'
+    '인문학': 'humanities',
+    '소설/시/희곡': 'literature'
 };
 
 /**
@@ -144,8 +145,8 @@ const handleTranslationRequest = async (req, res) => {
         // --- Translation_Job 저장 ---
         const jobSql = `
             INSERT INTO Translation_Job 
-                (user_id, input_type, input_text, input_text_path, char_count, selected_domain)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (user_id, input_type, input_text, input_text_path, char_count, selected_domain, requested_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
         const [jobResult] = await pool.execute(jobSql, [
             userId,
@@ -153,7 +154,8 @@ const handleTranslationRequest = async (req, res) => {
             finalInputText ?? null,
             finalStoragePath ?? null,
             finalCharCount,
-            userStatus === 'paid' ? dbDomainValue : null
+            userStatus === 'paid' ? dbDomainValue : null,
+            new Date() 
         ]);
         newJobId = jobResult.insertId;
 
