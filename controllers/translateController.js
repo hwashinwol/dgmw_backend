@@ -1,6 +1,7 @@
 // translateController.js
 const pool = require('../config/db');
-const pdf = require('pdf-parse');
+const pdfModule = require('pdf-parse');
+const pdfParse = pdfModule.pdf || pdfModule.default || pdfModule;  
 const mammoth = require('mammoth');
 const s3Client = require("../config/storage");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
@@ -8,7 +9,8 @@ const { runAnalysis } = require('../services/aiService');
 const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken'); 
 const path = require('path');
-const { getSpectrumFeedback } = require('../services/scoringService'); // feedback 함수 가져오기
+const { getSpectrumFeedback } = require('../services/scoringService');
+
 
 // 비회원 IP 기반 사용량 추적기 (서버 재시작 시 초기화)
 const anonymousUsage = new Map();
@@ -103,21 +105,38 @@ const handleTranslationRequest = async (req, res) => {
 
         // --- 입력 처리 ---
         if (inputType === 'text') {
-            if(!inputText) return res.status(400).json({ error: "inputText 필수" });
+            if (!inputText) 
+                return res.status(400).json({ error: "inputText 필수" });
+
             textToTranslate = inputText;
             finalCharCount = inputText.length;
             finalInputText = inputText;
-            if (finalCharCount > 5000) return res.status(413).json({ error: "텍스트 입력은 5,000자 초과 불가" });
-        } else if (inputType === 'file') {
-            if (!file) return res.status(400).json({ error: "파일 업로드 필요" });
 
+            if (finalCharCount > 5000) 
+                return res.status(413).json({ error: "텍스트 입력은 5,000자 초과 불가" });
+
+        } else if (inputType === 'file') {
+            if (!file) 
+                return res.status(400).json({ error: "파일 업로드 필요" });
             if (file.mimetype === 'application/pdf') {
-                textToTranslate = (await pdf(file.buffer)).text;
-            } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                textToTranslate = (await mammoth.extractRawText({ buffer: file.buffer })).value;
-            } else if (file.mimetype === 'text/plain') {
+                const result = await pdfParse(file.buffer);
+                textToTranslate = result.text;
+            }
+
+            else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                try {
+                    const result = await mammoth.extractRawText({ buffer: file.buffer });
+                    textToTranslate = result.value || "";
+                } catch (err) {
+                    return res.status(400).json({
+                        error: "DOCX 텍스트를 추출할 수 없습니다. 파일이 손상되었거나 호환되지 않습니다."
+                    });
+                }
+            }
+            else if (file.mimetype === 'text/plain') {
                 textToTranslate = file.buffer.toString('utf8');
-            } else {
+            }
+            else {
                 return res.status(400).json({ error: "지원하지 않는 파일 형식" });
             }
 
@@ -125,19 +144,22 @@ const handleTranslationRequest = async (req, res) => {
             if (userStatus === 'paid' && finalCharCount > 50000) {
                 return res.status(413).json({ error: "파일 입력은 50,000자 초과 불가" });
             }
-
             const originalnameUtf8 = Buffer.from(file.originalname, 'latin1').toString('utf8');
             const originalBasename = path.parse(originalnameUtf8).name;
+
             const fileKey = `inputs/${Date.now()}-${originalBasename}.txt`;
+
             const command = new PutObjectCommand({
                 Bucket: process.env.NCP_BUCKET_NAME,
                 Key: fileKey,
                 Body: textToTranslate,
                 ContentType: 'text/plain; charset=utf8'
             });
+
             await s3Client.send(command);
             finalStoragePath = fileKey;
         }
+
 
         // 도메인 매핑
         const dbDomainValue = domainMapper[selected_domain] || null;
@@ -148,7 +170,7 @@ const handleTranslationRequest = async (req, res) => {
                 (user_id, input_type, input_text, input_text_path, char_count, selected_domain, requested_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
-        const [jobResult] = await pool.execute(jobSql, [
+        const [jobResult] = await db.execute(jobSql, [
             userId,
             inputType,
             finalInputText ?? null,

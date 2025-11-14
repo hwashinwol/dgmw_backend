@@ -88,3 +88,20 @@
 2025-11-10 13:43:04 [31merror[39m: Claude API 호출 실패:
 2025-11-10 13:49:29 [31merror[39m: Claude API 호출 실패:
 2025-11-10 14:01:45 [31merror[39m: 번역 작업 처리 중 에러 발생: scoreObj is not defined
+2025-11-14 09:56:23 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf is not a function
+2025-11-14 10:00:14 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf.default is not a function
+2025-11-14 10:00:15 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf.default is not a function
+2025-11-14 10:08:03 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse.default is not a function
+2025-11-14 10:09:30 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse.default is not a function
+2025-11-14 10:18:52 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf is not a function
+2025-11-14 10:18:52 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf is not a function
+2025-11-14 10:26:08 [31merror[39m: 번역 작업 처리 중 에러 발생: pdf is not a function
+2025-11-14 10:30:03 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:16 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:18 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:18 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:18 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:18 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:19 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:19 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
+2025-11-14 10:33:19 [31merror[39m: 번역 작업 처리 중 에러 발생: pdfParse is not a function
