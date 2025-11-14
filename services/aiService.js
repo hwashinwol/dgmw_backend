@@ -19,12 +19,12 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
     const translationPromises =
         userStatus === 'paid'
             ? [
-                callOpenAI('gpt-4o', textToTranslate), 
-                callGoogle(textToTranslate), 
-                callAnthropic(textToTranslate)
+                callOpenAI('gpt-4o', textToTranslate, selected_domain), 
+                callGoogle(textToTranslate, selected_domain), 
+                callAnthropic(textToTranslate, selected_domain)
               ]
             : [
-                callOpenAI('gpt-3.5-turbo',textToTranslate), 
+                callOpenAI('gpt-3.5-turbo',textToTranslate, selected_domain), 
                 callGoogleTranslate(textToTranslate)
               ];
 

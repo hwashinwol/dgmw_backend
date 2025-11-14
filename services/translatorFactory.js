@@ -15,18 +15,35 @@ const googleTranslate = new Translate({
 
 const logger = require('../utils/logger');
 
+const domainRulesMap = {
+        "engineering": "In engineering domain, prioritize technical accuracy and precise terminology. Literal translation is generally preferred for clarity.",
+        "social_science": "In social sciences, maintain conceptual accuracy, but allow natural phrasing for readability.",
+        "art": "In arts domain, prioritize expressive, natural translation. Free translation is acceptable to convey nuance.",
+        "medical": "In medical domain, prioritize accuracy and safety. Literal translation is strongly preferred.",
+        "law": "In legal domain, maintain strict legal terminology. Literal translation is required.",
+        "nature_science": "In natural sciences, technical accuracy is critical. Literal translation is generally preferred.",
+        "humanities": "In humanities, natural and fluent translation is important. Free translation is acceptable to convey meaning and style.",
+        "literature": "In literary works (novels/poems/plays), prioritize capturing the original's artistic style, tone, and emotional nuance. Natural, fluent, and expressive translation is paramount. Free translation and the creative adaptation of idioms are essential to convey the cultural context and authorial intent, even if it deviates from a literal translation."
+    };
+
 // API Endpoints
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const GOOGLE_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
 
 // 3️⃣ OpenAI (GPT)
-async function callOpenAI(model, textToTranslate) {
+async function callOpenAI(model, textToTranslate, selected_domain) { // ⭐️ selected_domain 인자 받음
     try {
+        const domainRule = domainRulesMap[selected_domain];
+        let system_prompt = 'You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.';
+        if (domainRule) {
+            system_prompt += ` You are an expert translator specializing in the **${domainRule}** field. Pay close attention to the specialized terminology of this field.`;
+        }
+
         const response = await axios.post(OPENAI_ENDPOINT, {
             model,
             messages: [
-                { role: 'system', content: 'You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.' },
+                { role: 'system', content: system_prompt }, 
                 { role: 'user', content: textToTranslate }
             ]
         }, {
@@ -44,12 +61,18 @@ async function callOpenAI(model, textToTranslate) {
 }
 
 // 4️⃣ Gemini (Google)
-async function callGoogle(textToTranslate) {
+async function callGoogle(textToTranslate, selected_domain) { // ⭐️ selected_domain 인자 받음
     try {
+        const domainRule = domainRulesMap[selected_domain];
+        let base_prompt = 'Detect the language of the following text. If it is Korean, translate it to English. If it is English, translate it to Korean.';
+        if (domainRule) {
+            base_prompt += ` You are an expert translator specializing in the **${domainRule}** field. Pay close attention to the specialized terminology of this field.`;
+        }
+
         const response = await axios.post(GOOGLE_ENDPOINT, { 
             contents: [
                 {
-                    parts : [{text: `Detect the language of the following text. If it is Korean, translate it to English. If it is English, translate it to Korean.\n\n${textToTranslate}`}]
+                    parts : [{text: `${base_prompt}\n\n${textToTranslate}`}]
                 }
             ]
         }, {
@@ -94,7 +117,7 @@ async function callGoogle(textToTranslate) {
 }
 
 // Claude Sonnet 4.5
-async function callAnthropic(textToTranslate) {
+async function callAnthropic(textToTranslate, selected_domain) { // ⭐️ selected_domain 인자 받음
     try {
         if (!textToTranslate || !textToTranslate.trim()) {
             return { 
@@ -104,10 +127,17 @@ async function callAnthropic(textToTranslate) {
             };
         }
 
+        const domainRule = domainRulesMap[selected_domain];
+        let system_prompt = 'You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.';
+    
+        if (domainRule) {
+            system_prompt += ` You are an expert translator specializing in the **${domainRule}** field. Pay close attention to the specialized terminology of this field.`;
+        }
+
         const response = await axios.post(ANTHROPIC_ENDPOINT, {
             model: "claude-sonnet-4-5-20250929",
             max_tokens: 1024,
-            system: "You are a professional translator. Detect the language of the input text. If it is Korean, translate it to English. If it is English, translate it to Korean.",
+            system: system_prompt, 
             messages: [
                 { role: "user", content: textToTranslate }
             ]
