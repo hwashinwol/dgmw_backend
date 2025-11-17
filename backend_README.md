@@ -84,7 +84,6 @@ graph TD
 ### 1. 백엔드 서버 실행 (Current Repo)
 
 1. 현재 레포지토리 클론 및 설치
-```bash
 $git clone [https://github.com/hwashinwol/dgmw_backend.git$](https://github.com/hwashinwol/dgmw_backend.git$) cd dgmw_backend
 $ npm install
 
