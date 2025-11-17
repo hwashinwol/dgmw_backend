@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DGMW (그런 뜻 아닌데): AI 번역 스타일 분석기 (Backend)
 
 > AI 번역 모델(GPT-4o, Gemini, Claude)의 번역 결과를 비교하고, '직역'부터 '의역'까지의 번역 스타일(Spectrum)을 AI로 분석해 주는 웹 서비스입니다.
@@ -141,3 +142,6 @@ REACT_APP_STRIPE_PUBLIC_KEY=pk_test_...
 3. 프론트엔드 서버 시작
 $ npm start # (클라이언트가 3000 포트에서 실행됩니다)
 
+=======
+backend_README.md 에 병합
+>>>>>>> 97ea983d882ed82f41a46eda285b1d05b931cd44
