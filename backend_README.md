@@ -84,11 +84,14 @@ graph TD
 ### 1. 백엔드 서버 실행 (Current Repo)
 
 1. 현재 레포지토리 클론 및 설치
+```bash
 $git clone [https://github.com/hwashinwol/dgmw_backend.git$](https://github.com/hwashinwol/dgmw_backend.git$) cd dgmw_backend
 $ npm install
+```
 
-2. .env 파일 설정
+3. .env 파일 설정
 루트 디렉토리에 .env 파일을 생성하고 아래 환경 변수를 설정합니다.
+```bash
 # DB
 DB_HOST=...
 DB_USER=...
@@ -113,30 +116,39 @@ NCP_REGION=...
 NCP_BUCKET_NAME=...
 NCP_ACCESS_KEY=...
 NCP_SECRET_KEY=...
+```
 
 3. DB 스키마 적용
 (프로젝트에 포함된 schema.sql 파일을 MySQL DB에 실행합니다.)
 
 4. 백엔드 서버 시작
+```bash
 $ npm start  # (서버가 8080 포트에서 실행됩니다)
-
+```
 
 ### 2. 프론트엔드 서버 실행 
 프론트엔드 서버는 별도의 레포지토리에서 실행해야 합니다.
 
 1. 프론트엔드 레포지토리 클론 및 설치
 (별도의 터미널을 열고 실행합니다)
-$git clone [https://github.com/hwashinwol/dgmw_frontend.git$](https://github.com/hwashinwol/dgmw_frontend.git$) cd dgmw_frontend
+```bash
+$ git clone [https://github.com/hwashinwol/dgmw_frontend.git$](https://github.com/hwashinwol/dgmw_frontend.git$) cd dgmw_frontend
 $ npm install
+```
 
-2. .env 파일 설정
+3. .env 파일 설정
 루트 디렉토리에 .env 파일을 생성하고 아래 환경 변수를 설정합니다.
 # 백엔드 API 서버 주소 (먼저 실행한 서버)
+```bash
 REACT_APP_API_URL=http://localhost:8080
+```
 
 # Stripe 공개 키
+```bash
 REACT_APP_STRIPE_PUBLIC_KEY=pk_test_...
+```
 
 3. 프론트엔드 서버 시작
+```bash
 $ npm start # (클라이언트가 3000 포트에서 실행됩니다)
-
+```
