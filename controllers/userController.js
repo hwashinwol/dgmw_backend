@@ -75,8 +75,7 @@ exports.cancelSubscription = async (req, res) => {
 
     try {
         db = await pool.getConnection();
-        await db.beginTransaction(); // ⭐️ [수정] 트랜잭션 시작
-
+        await db.beginTransaction(); 
         if (isStripeEnabled) {
             // --- 1. [운영 모드] ---
             logger.info(`[User/Cancel] Stripe 모드: ${email} 님이 구독 취소를 시도합니다.`);
@@ -103,7 +102,7 @@ exports.cancelSubscription = async (req, res) => {
                 logger.warn(`[User/Cancel] ${email}님은 Stripe 구독 ID(subId)가 없어 DB만 업데이트합니다.`);
             }
  
-            // 4. DB 업데이트 (auto_renew = false, subscription_end_date = ... )
+            // 4. DB 업데이트 
             await db.query(
                 'UPDATE user SET auto_renew = ?, subscription_end_date = ? WHERE user_id = ?', 
                 [false, mysqlDateTime, userId]
@@ -117,11 +116,11 @@ exports.cancelSubscription = async (req, res) => {
             logger.info(`[Mock User/Cancel] DB auto_renew = false로 업데이트 완료`);
         }
 
-        await db.commit(); // ⭐️ [수정] 트랜잭션 커밋
+        await db.commit(); 
         res.status(200).json({ message: "구독 취소(자동 갱신)가 정상적으로 예약되었습니다." });
 
     } catch (error) {
-        if (db) await db.rollback(); // ⭐️ [수정] 롤백
+        if (db) await db.rollback(); 
         logger.error('[User] 구독 취소 실패:', { userId, message: error.message });
         res.status(500).json({ error: "서버 오류" });
     } finally {
@@ -141,11 +140,9 @@ exports.deleteUser = async (req, res) => {
         await db.beginTransaction(); // 트랜잭션 시작
 
         if (isStripeEnabled) {
-            // --- 1. [운영 모드] ---
+            // 운영 모드
             logger.info(`[User/Delete] Stripe 모드: ${email} 님이 회원 탈퇴를 시도합니다.`);
             
-            // ⭐️ [수정] TODO 제거 -> 실제 Stripe API 연동
-            // 1. DB에서 user.stripe_customer_id 조회
             const [userRows] = await db.query('SELECT stripe_customer_id, stripe_subscription_id FROM user WHERE user_id = ?', [userId]);
             const customerId = userRows[0]?.stripe_customer_id;
             const subId = userRows[0]?.stripe_subscription_id;
@@ -178,7 +175,7 @@ exports.deleteUser = async (req, res) => {
 
         // DB에서 사용자 관련 데이터 삭제 (외래 키 제약조건 순서대로)
         await db.query('DELETE FROM analysis_result WHERE job_id IN (SELECT job_id FROM translation_job WHERE user_id = ?)', [userId]);
-        await db.query('DELETE FROM payment_history WHERE user_id = ?', [userId]); // ⭐️ [추가] payment_history 삭제
+        await db.query('DELETE FROM payment_history WHERE user_id = ?', [userId]); 
         await db.query('DELETE FROM translation_job WHERE user_id = ?', [userId]);
         await db.query('DELETE FROM user WHERE user_id = ?', [userId]);
 
