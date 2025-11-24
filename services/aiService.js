@@ -63,7 +63,7 @@ async function runAnalysis(textToTranslate, userStatus = 'free', selected_domain
                 }])
             );
 
-            // 4. finalResults에 스펙트럼 점수를 병합합니다.
+            // 4. finalResults에 스펙트럼 점수를 병합
             finalResults = finalResults.map(res => {
                 if (res.error) return res;
                 const scoreData = scoreMap.get(res.model_name);

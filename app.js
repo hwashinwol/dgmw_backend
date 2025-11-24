@@ -24,6 +24,9 @@ app.use(cors());
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 const isStripeEnabled = stripeKey && stripeKey.length >10;
 
+// 데이터 관리 스케줄러
+const cron = require('node-cron');
+
 if (isStripeEnabled) {
     // --- 3-1. [운영 모드] Stripe 키가 있을 때 ---
     logger.info('[APP] Stripe 결제 라우트가 활성화되었습니다.');
@@ -39,7 +42,7 @@ if (isStripeEnabled) {
 
 app.post(
     '/api/v1/payment/webhook',
-    express.raw({type : 'application/json'}), // ⭐️ Webhook은 express.json()보다 먼저 위치해야 합니다.
+    express.raw({type : 'application/json'}), 
     paymentController.handleStripeWebhook
 );
 app.use("/api/v1/payment", paymentRoutes);
@@ -67,5 +70,42 @@ app.listen(PORT, async () => {
         logger.info(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
     } catch (err) {
         logger.error("MySQL 데이터베이스 연결 실패:", err.message);
+    }
+});
+
+// 8. 매일 자정에 7일 지난 데이터 삭제
+cron.schedule('0 0 * * *', async () => {
+    logger.info('[Auto-Cleanup] 오래된 데이터 정리 작업을 시작합니다...');
+    let connection;
+    try {
+        connection = await pool.getConnection();
+
+        // 자식 테이블 (analysis_result) 먼저 삭제
+        // "요청일이 7일 지난 Translation_Job의 ID"를 찾아서, 그 ID를 가진 결과를 지우기.
+        const deleteChildSql = `
+            DELETE FROM analysis_result 
+            WHERE job_id IN (
+                SELECT job_id 
+                FROM Translation_Job 
+                WHERE requested_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+            )
+        `;
+        const [childResult] = await connection.execute(deleteChildSql);
+        logger.info(`   - analysis_result 삭제: ${childResult.affectedRows}건`);
+
+        // 부모 테이블 (Translation_Job) 삭제
+        const deleteParentSql = `
+            DELETE FROM Translation_Job 
+            WHERE requested_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+        `;
+        const [parentResult] = await connection.execute(deleteParentSql);
+        logger.info(`   - Translation_Job 삭제: ${parentResult.affectedRows}건`);
+
+        logger.info('[Auto-Cleanup] 작업 완료.');
+
+    } catch (error) {
+        logger.error(`[Auto-Cleanup] 에러 발생: ${error.message}`);
+    } finally {
+        if (connection) connection.release();
     }
 });
